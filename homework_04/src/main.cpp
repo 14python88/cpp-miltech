@@ -34,28 +34,34 @@ int main(int argc, char** argv) {
     while (getline(file, line)) {
         line_count++;
     };
+    file.clear();
+    file.seekg(0);
 
-    if(line.size() > 5){
-        cout << "Too many arguments in the input file line!" << endl;
-        return 1;
+    int rows = line_count, cols = ARGS_COUNT;
+
+    int** data_array = new int*[rows];
+    for(int i = 0; i < rows; ++i){
+       data_array[i] = new int[cols];
     };
-
-    int data_array[ARGS_COUNT][line_count];
-
-    for(int i = 0; i < ARGS_COUNT; ++i){
-        for(int j = 0; j < line_count; ++j){
+ 
+    for(int i = 0; i < rows; ++i) {
+        for(int j = 0; j < cols; ++j) {
             file >> data_array[i][j];
         };
     };
 
-    int timestamp_ms[line_count], fl_ticks[line_count], fr_ticks[line_count], bl_ticks[line_count], br_ticks[line_count];
+    int* timestamp_ms = new int[line_count];
+    int* fl_ticks = new int[line_count];
+    int* fr_ticks = new int[line_count];
+    int* bl_ticks = new int[line_count];
+    int* br_ticks = new int[line_count];
 
     for(int j = 0; j < line_count; ++j){
-        timestamp_ms[j] = data_array[0][j];
-        fl_ticks[j] = data_array[1][j];
-        fr_ticks[j] = data_array[2][j];
-        bl_ticks[j] = data_array[3][j];
-        br_ticks[j] = data_array[4][j];
+        timestamp_ms[j] = data_array[j][0];
+        fl_ticks[j] = data_array[j][1];
+        fr_ticks[j] = data_array[j][2];
+        bl_ticks[j] = data_array[j][3];
+        br_ticks[j] = data_array[j][4];
         cout << timestamp_ms[j] << " " << fl_ticks[j] << " " << fr_ticks[j] << " " << bl_ticks[j] << " " << br_ticks[j] << endl;
     };
 
@@ -85,7 +91,17 @@ int main(int argc, char** argv) {
         y += d * sin(theta + dtheta / 2);
         theta += dtheta;
 
-        cout << timestamp_ms << " " << x << " " << y << " " << theta << endl;
+        cout << timestamp_ms[i] << " " << x << " " << y << " " << theta << endl;
     };
+
+    for(int i = 0; i < rows; ++i){
+        delete[] data_array[i];
+    };
+    delete[] data_array;
+    delete[] timestamp_ms;
+    delete[] fl_ticks;
+    delete[] fr_ticks;
+    delete[] bl_ticks;
+    delete[] br_ticks;
     return 0;
 }
