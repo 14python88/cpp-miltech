@@ -37,10 +37,19 @@ PR-и на вашій копії йдуть у ваш main.
 
 3. **Зібрати весь репо всередині контейнера:**
    ```bash
-   cmake -S . -B build -G Ninja
-   cmake --build build
+   cmake --preset debug
+   cmake --build --preset debug
    ```
-   Виконувані файли домашніх робіт з'являться в `build/homework_XX/`.
+   Виконувані файли домашніх робіт з'являться в `build/debug/homework_XX/`.
+   Demo-код занять лежить у відповідних піддиректоріях `build/debug/demos/`.
+
+4. **Зібрати ARM64 debug binary для Raspberry Pi / Radxa / Jetson:**
+   ```bash
+   cmake --preset aarch64-debug
+   cmake --build --preset aarch64-debug
+   ```
+   ARM64 артефакти з'являться в `build/aarch64-debug/`. Цей preset
+   використовує toolchain `cmake/toolchains/aarch64-linux-gnu.cmake`.
 
 ## Доступ для перевірки
 
@@ -57,19 +66,51 @@ formal review (approve / request changes) навіть на публічному
 
 ## Оновлення з курс-репо
 
-Якщо у курс-репо з'являється щось нове (новий starter, фікс у devcontainer,
-оновлена інструкція) - підтягти у свій репо можна через додатковий remote:
+Зміни в курс-репо не синкаються автоматично у локальний репо. Якщо
+щось важливе оновлюється - буде анонс у Slack-каналі курсу.
+
+Рекомендований спосіб підтягнути snapshot курс-репо без затирання ДЗ 4:
 
 ```bash
-# одноразово: додати курс-репо як remote `course`
-git remote add course https://github.com/robot-dreams-code/C-PLUS-PLUS-FOR-MILITARY-TECHNOLOGY.git
+tmp_dir=$(mktemp -d)
 
-# коли треба оновитись:
-git fetch course
-git merge course/main              # підтягнути все
-# або точково:
-git cherry-pick <commit-sha>       # конкретний коміт
+git clone --depth 1 \
+  git@github.com:robot-dreams-code/C-PLUS-PLUS-FOR-MILITARY-TECHNOLOGY.git \
+  "$tmp_dir/course"
+
+(
+  cd "$tmp_dir/course"
+  tar --exclude='./.git' --exclude='./homework_04' -cf - .
+) | tar -xf -
+
+rm -rf "$tmp_dir"
+
+git status
+git add .
+git commit -m "chore: sync course repository updates"
 ```
+
+Команда копіює tooling/devcontainer/CMake/demo/homework_05 з актуального
+курс-репо, але не затирає `homework_04/`. `git status` перед комітом потрібен
+як контроль того, які файли зміняться у локальному репо.
+
+**Чому не git merge / cherry-pick:** курс-репо позначений як GitHub
+Template. Копія через "Use this template" - це новий репо з єдиним
+"Initial commit", без зв'язку з курс-репо в історії. Спільного предка
+нема, тому git нічого не може злити автоматично.
+
+Чому Template, а не fork: fork залишає історію спільною, і merge для
+нього працював би. Але PR на fork-у GitHub дефолтно цілить у upstream
+(у курс-репо). Курс-репо має лишатися read-only, PR-и студентів - іти
+у їхні репо. Template це знімає, ціна - нема прямого git-sync.
+
+`git merge course/main` падає з `refusing to merge unrelated histories`.
+З `--allow-unrelated-histories` merge пройде, але вийде каша: дві
+кореневі коміти і конфлікти на більшості файлів. Cherry-pick не падає
+сам, але конфліктує на локально модифікованих файлах.
+
+Простіше - snapshot copy за командою вище. Без merge unrelated histories і
+без ручного вибору окремих файлів.
 
 ## Перед стартом
 
@@ -95,6 +136,8 @@ git cherry-pick <commit-sha>       # конкретний коміт
 ├── .github/workflows/     # GitHub Actions: CI build через devcontainer
 ├── CHANGELOG.md           # лог помітних змін по PR-ах
 ├── CMakeLists.txt         # корневий CMakeLists, підтягує homework_XX через add_subdirectory
+├── cmake/toolchains/       # CMake toolchain-файли для cross-compilation
+├── demos/                  # demo-код для занять
 ├── homework_XX/           # окрема домашка, кожна зі своїм CMakeLists.txt
 └── preps/                 # інструкції зі сетапу за платформами
 ```
@@ -117,8 +160,11 @@ git cherry-pick <commit-sha>       # конкретний коміт
 Workflow `.github/workflows/build.yml` запускається на кожен PR (і на push у
 main). Він:
 1. Будує devcontainer image з Dockerfile.
-2. Виконує всередині `cmake -S . -B build -G Ninja && cmake --build build`.
-3. Падає якщо хоч одна `homework_XX` не компілюється з
+2. Виконує native debug build:
+   `cmake --preset debug && cmake --build --preset debug`.
+3. Виконує ARM64 cross debug build:
+   `cmake --preset aarch64-debug && cmake --build --preset aarch64-debug`.
+4. Падає якщо хоч одна `homework_XX` або demo target не компілюється з
    тулчейном з devcontainer-а (gcc-13, clang-18, C++20).
 
 Якщо CI червоний локально зібралося, але на CI ні - швидше за все
