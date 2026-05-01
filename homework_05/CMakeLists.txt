@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(telemetry src/telemetry.cpp)
 target_include_directories(telemetry PUBLIC include)
 
-add_executable(elemetry_check src/main.cpp)
+add_executable(telemetry_check src/main.cpp)
 target_link_libraries(telemetry_check PUBLIC telemetry)
 
 target_compile_options(ugv_telemetry PRIVATE -Wall -Wextra -pedantic)
