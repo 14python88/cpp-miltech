@@ -12,6 +12,9 @@ struct BallisticsInput {
     float attackSpeed;
     float accelerationPath;
     std::string ammo_name;
+    float mass;
+    float drag;
+    float lift;
 };
 
 // Organizes coordinates
@@ -20,12 +23,19 @@ struct Coord {
     float y;
 };
 
+// Aggregates ammo parameters
+struct Ammo {
+    const char* name;
+    float mass;
+    float drag;
+    float lift;
+};
 
 // Reads input from data file and returns in as a BallisticsInput{} struct
 BallisticsInput readInput(const char* path);
 
 // Calculates bomb drop coordinates and returns them as a Coord{} struct
-Coord calculateBalistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath);
+Coord calculateBallistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath);
 
 // Outputs the result into the console
-void PrintResult(const float& fireX, const float& fireY);
+int printResult(const float& fireX, const float& fireY);

@@ -1,4 +1,4 @@
-// #include "ballistics.hpp"
+#include "ballistics.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -12,29 +12,52 @@
 
 #define USE_MATH_DEFINES
 
-using namespace std;
-
-double pi = M_PI, g = 9.81;
-
 BallisticsInput readInput(const char* path) {
-    ifstream file{path};
+
+    Ammo arsenal[5] = {
+        {"VOG-17", 0.35f, 0.07f, 0.0f},
+        {"M67", 0.6f, 0.10f, 0.0f},
+        {"RKG-3", 1.2f, 0.10f, 0.0f},
+        {"GLIDING-VOG", 0.45f, 0.10f, 1.0f},
+        {"GLIDING-RKG", 1.4f, 0.10f, 1.0f} 
+    };
+
+    float m = 0.0f, d = 0.0f, l = 0.0f;
+
+    std::ifstream file{path};
     if (!file) {
-        std::cerr << "error: failed to open input file: " << path << '\n';
+        std::cerr << "error: failed to open input file: " << path << std::endl;
         exit(EXIT_FAILURE);
     };
 
-    string input_file;
+    std::string input_file;
     getline(file, input_file);
-    vector<string> params_list = {"xd", "yd", "zd", "target_x", "target_y", "attackSpeed", "accelerationPath", "ammo_name"};
-    vector<string> params;
+    std::vector<std::string> params_list = {"xd", "yd", "zd", "target_x", "target_y", "attackSpeed", "accelerationPath", "ammo_name"};
+    std::vector<std::string> params;
     size_t pos = 0;
-    string parameter;
-    while ((pos = input_file.find(" ")) != string::npos) {
+    std::string parameter;
+    while ((pos = input_file.find(" ")) != std::string::npos) {
         parameter = input_file.substr(0, pos);
         params.push_back(parameter);
         input_file.erase(0, pos+1);
     };
     params.push_back(input_file);
+
+    char ammo_name[15] = "";
+    strcpy(ammo_name,params[7].c_str());
+    bool found = 0;
+    for(int n = 0; n < 5; ++n){
+        if(strcmp(ammo_name, arsenal[n].name) == 0){
+            found = 1;
+            m = arsenal[n].mass;
+            d = arsenal[n].drag;
+            l = arsenal[n].lift;
+        };
+    };
+    if(found == 0){
+        std::cerr << "Unknown ammo type!" << std::endl;
+        exit(EXIT_FAILURE);
+    };
 
     BallisticsInput input{
         .xd = stof(params[0]),
@@ -44,14 +67,19 @@ BallisticsInput readInput(const char* path) {
         .target_y = stof(params[4]),
         .attackSpeed = stof(params[5]),
         .accelerationPath = stof(params[6]),
-        .ammo_name = params[7]
+        .ammo_name = params[7],
+        .mass = m,
+        .drag = d,
+        .lift = l
     };
 
     file.close();
     return input;
 }
 
-Coord calculateBalistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath){
+Coord calculateBallistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath){
+
+    double pi = M_PI, g = 9.81;
 
     float a = drag * g * mass - 2 * drag * drag * lift * attackSpeed;
     float b = (-3) * g * mass * mass + 3 * drag * lift * mass * attackSpeed;
@@ -61,7 +89,7 @@ Coord calculateBalistics(const float& mass, const float& drag, const float&  lif
     float acos_arg = ((3 * q) / (2 * p)) * sqrt((-3) / p);
 
     if(!(acos_arg >= -1) || !(acos_arg <= 1)){
-        cout << "acos argument out of range (-1,1)!" << endl;
+        std::cerr << "acos argument out of range (-1,1)!" << std::endl;
         exit(EXIT_FAILURE);
     };
 
@@ -76,13 +104,13 @@ Coord calculateBalistics(const float& mass, const float& drag, const float&  lif
     (36 * (1 + lift * lift) * pow(mass,4));
 
     if(t <= 0 || h <= 0){
-        cout << "Inadequate calculation value(s): t, h!" << endl;
+        std::cerr << "Inadequate calculation value(s): t, h!" << std::endl;
         exit(EXIT_FAILURE);
     };
 
     float D = sqrt(pow((target_x - xd),2) + pow((target_y - yd),2));
     if(D <= 0){
-        cout << "Inadequate value D!" << endl;
+        std::cerr << "Inadequate value D!" << std::endl;
         exit(EXIT_FAILURE);
     };
 
@@ -107,6 +135,7 @@ Coord calculateBalistics(const float& mass, const float& drag, const float&  lif
     return fire_coords;
 }
 
-void PrintResult(const float& fireX, const float& fireY){
-    cout << "Bomb drop coordinates are: x = " << fireX << ", y = " << fireY << endl;
+int printResult(const float& fireX, const float& fireY){
+    std::cout << "Bomb drop coordinates are: x = " << fireX << ", y = " << fireY << std::endl;
+    return 0;
 }
