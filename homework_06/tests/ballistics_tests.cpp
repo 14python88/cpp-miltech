@@ -6,11 +6,11 @@ TEST(Ballistics, ComputesKnownDropPoint) {
 
   const BallisticsInput input{
 
-      .drone_x = 100.0,
+      .xd = 100.0,
 
-      .drone_y = 100.0,
+      .yd = 100.0,
 
-      .drone_z = 100.0,
+      .zd = 100.0,
 
       .target_x = 200.0,
 
@@ -24,10 +24,11 @@ TEST(Ballistics, ComputesKnownDropPoint) {
 
   };
 
-  const DropSolution solution = compute_drop_solution(input);
+  AmmoInput ammo = getAmmoInput(input.ammo_name.c_str());
 
-  EXPECT_NEAR(solution.fire_x, 173.759, 0.01);
+  Coord drop_point = calculateBallistics(ammo.mass, ammo.drag, ammo.lift, input.zd, input.attack_speed, input.xd, input.yd, input.target_x, input.target_y, input.acceleration_path);
 
-  EXPECT_NEAR(solution.fire_y, 173.759, 0.01);
+  EXPECT_NEAR(drop_point.x, 173.759, 0.01);
+  EXPECT_NEAR(drop_point.y, 173.759, 0.01);
 
 }

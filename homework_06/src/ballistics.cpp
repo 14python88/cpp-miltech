@@ -22,7 +22,7 @@ BallisticsInput readInput(const char* path) {
 
     std::string input_file;
     getline(file, input_file);
-    std::vector<std::string> params_list = {"xd", "yd", "zd", "target_x", "target_y", "attackSpeed", "accelerationPath", "ammo_name"};
+    std::vector<std::string> params_list = {"xd", "yd", "zd", "target_x", "target_y", "attack_speed", "acceleration_path", "ammo_name"};
     std::vector<std::string> params;
     size_t pos = 0;
     std::string parameter;
@@ -39,8 +39,8 @@ BallisticsInput readInput(const char* path) {
         .zd = stof(params[2]),
         .target_x = stof(params[3]),
         .target_y = stof(params[4]),
-        .attackSpeed = stof(params[5]),
-        .accelerationPath = stof(params[6]),
+        .attack_speed = stof(params[5]),
+        .acceleration_path = stof(params[6]),
         .ammo_name = params[7],
     };
     file.close();
@@ -84,12 +84,12 @@ AmmoInput getAmmoInput(const char* ammo_name){
     return ammo_input;
 }
 
-Coord calculateBallistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath){
+Coord calculateBallistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attack_speed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& acceleration_path){
 
     double pi = M_PI, g = 9.81;
 
-    float a = drag * g * mass - 2 * drag * drag * lift * attackSpeed;
-    float b = (-3) * g * mass * mass + 3 * drag * lift * mass * attackSpeed;
+    float a = drag * g * mass - 2 * drag * drag * lift * attack_speed;
+    float b = (-3) * g * mass * mass + 3 * drag * lift * mass * attack_speed;
     float c = 6 * mass * mass * zd;
     float p = -(b * b) / (3 * a * a);
     float q = (2 * b * b * b) / (27 * a * a * a) + c / a;
@@ -103,11 +103,11 @@ Coord calculateBallistics(const float& mass, const float& drag, const float&  li
     float phi = acos(acos_arg);
 
     float t = 2 * sqrt((-p)/3) * cos((phi + 4*pi)/3) - b / (3 * a);
-    float h = attackSpeed*t - (pow(t,2) * drag * attackSpeed) / (2 * mass) +
-    pow(t,3) * (6 * drag * g * lift * mass - 6 * drag * drag * attackSpeed * (pow(lift,2)-1)) / (36 * mass * mass) +
+    float h = attack_speed*t - (pow(t,2) * drag * attack_speed) / (2 * mass) +
+    pow(t,3) * (6 * drag * g * lift * mass - 6 * drag * drag * attack_speed * (pow(lift,2)-1)) / (36 * mass * mass) +
     pow(t,4) * ((-6) * drag * drag * g * lift * mass * (1 + pow(lift,2) + pow(lift,4)) + 3 * pow(drag,3) * pow(lift,2) * 
-    attackSpeed * (1 + lift * lift) + 6 * pow(drag,3) * pow(lift,4) * attackSpeed * (1 + lift * lift)) / (36 * mass * mass * mass * pow((1 + pow(lift,2)),2)) +
-    pow(t,5) * (3 * pow(drag,3) * g * mass * pow(lift,3) - 3*pow(drag,4) * lift * lift * attackSpeed * (1 + lift * lift)) / 
+    attack_speed * (1 + lift * lift) + 6 * pow(drag,3) * pow(lift,4) * attack_speed * (1 + lift * lift)) / (36 * mass * mass * mass * pow((1 + pow(lift,2)),2)) +
+    pow(t,5) * (3 * pow(drag,3) * g * mass * pow(lift,3) - 3*pow(drag,4) * lift * lift * attack_speed * (1 + lift * lift)) / 
     (36 * (1 + lift * lift) * pow(mass,4));
 
     if(t <= 0 || h <= 0){
@@ -124,9 +124,9 @@ Coord calculateBallistics(const float& mass, const float& drag, const float&  li
     float ratio = (D - h) / D;
     Coord fire_coords{};
 
-    if((h + accelerationPath) > D){
-        float xd_mid = target_x - (target_x - xd) * ((h + accelerationPath) / D);
-        float yd_mid = target_y - (target_y - yd) * ((h + accelerationPath) / D);
+    if((h + acceleration_path) > D){
+        float xd_mid = target_x - (target_x - xd) * ((h + acceleration_path) / D);
+        float yd_mid = target_y - (target_y - yd) * ((h + acceleration_path) / D);
         float D_mid = sqrt(pow((target_x - xd_mid),2) + pow((target_y - yd_mid),2));
         float ratio_mid = (D_mid - h) / D_mid;
         fire_coords = {
