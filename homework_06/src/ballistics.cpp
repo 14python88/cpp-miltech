@@ -14,16 +14,6 @@
 
 BallisticsInput readInput(const char* path) {
 
-    Ammo arsenal[5] = {
-        {"VOG-17", 0.35f, 0.07f, 0.0f},
-        {"M67", 0.6f, 0.10f, 0.0f},
-        {"RKG-3", 1.2f, 0.10f, 0.0f},
-        {"GLIDING-VOG", 0.45f, 0.10f, 1.0f},
-        {"GLIDING-RKG", 1.4f, 0.10f, 1.0f} 
-    };
-
-    float m = 0.0f, d = 0.0f, l = 0.0f;
-
     std::ifstream file{path};
     if (!file) {
         std::cerr << "error: failed to open input file: " << path << std::endl;
@@ -43,22 +33,6 @@ BallisticsInput readInput(const char* path) {
     };
     params.push_back(input_file);
 
-    char ammo_name[15] = "";
-    strcpy(ammo_name,params[7].c_str());
-    bool found = 0;
-    for(int n = 0; n < 5; ++n){
-        if(strcmp(ammo_name, arsenal[n].name) == 0){
-            found = 1;
-            m = arsenal[n].mass;
-            d = arsenal[n].drag;
-            l = arsenal[n].lift;
-        };
-    };
-    if(found == 0){
-        std::cerr << "Unknown ammo type!" << std::endl;
-        exit(EXIT_FAILURE);
-    };
-
     BallisticsInput input{
         .xd = stof(params[0]),
         .yd = stof(params[1]),
@@ -68,13 +42,46 @@ BallisticsInput readInput(const char* path) {
         .attackSpeed = stof(params[5]),
         .accelerationPath = stof(params[6]),
         .ammo_name = params[7],
+    };
+    file.close();
+    return input;
+}
+
+AmmoInput getAmmoInput(const char* ammo_name){
+    Ammo arsenal[5] = {
+        {"VOG-17", 0.35f, 0.07f, 0.0f},
+        {"M67", 0.6f, 0.10f, 0.0f},
+        {"RKG-3", 1.2f, 0.10f, 0.0f},
+        {"GLIDING-VOG", 0.45f, 0.10f, 1.0f},
+        {"GLIDING-RKG", 1.4f, 0.10f, 1.0f} 
+    };
+
+    float m = 0.0f, d = 0.0f, l = 0.0f;
+
+    char ammo_name_cpy[15] = "";
+    strcpy(ammo_name_cpy,ammo_name);
+    bool found = 0;
+    for(int n = 0; n < 5; ++n){
+        if(strcmp(ammo_name_cpy, arsenal[n].name) == 0){
+            found = 1;
+            m = arsenal[n].mass;
+            d = arsenal[n].drag;
+            l = arsenal[n].lift;
+        };
+    };
+    
+    if(found == 0){
+        std::cerr << "Unknown ammo type!" << std::endl;
+        exit(EXIT_FAILURE);
+    };
+
+    AmmoInput ammo_input{
         .mass = m,
         .drag = d,
         .lift = l
     };
 
-    file.close();
-    return input;
+    return ammo_input;
 }
 
 Coord calculateBallistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath){

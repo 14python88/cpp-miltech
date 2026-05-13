@@ -12,6 +12,9 @@ struct BallisticsInput {
     float attackSpeed;
     float accelerationPath;
     std::string ammo_name;
+};
+
+struct AmmoInput {
     float mass;
     float drag;
     float lift;
@@ -33,6 +36,9 @@ struct Ammo {
 
 // Reads input from data file and returns in as a BallisticsInput{} struct
 BallisticsInput readInput(const char* path);
+
+// Returns ammo parameters as an AmmoInput{} struct based on the ammo name
+AmmoInput getAmmoInput(const char* ammo_name);
 
 // Calculates bomb drop coordinates and returns them as a Coord{} struct
 Coord calculateBallistics(const float& mass, const float& drag, const float&  lift, const float& zd, const float& attackSpeed, const float& xd, const float& yd, const float& target_x, const float& target_y, const float& accelerationPath);
