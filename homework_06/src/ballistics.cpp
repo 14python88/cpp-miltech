@@ -43,6 +43,12 @@ BallisticsInput readInput(const char* path) {
         .acceleration_path = stof(params[6]),
         .ammo_name = params[7],
     };
+
+    if(input.zd <= 0) {
+        std::cerr << "Altitude must be above zero!" << std::endl;
+        exit(EXIT_FAILURE);
+    };
+
     file.close();
     return input;
 }
