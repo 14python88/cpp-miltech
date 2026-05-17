@@ -35,4 +35,3 @@ if(NOT CMAKE_CROSSCOMPILING)
 endif()
 
 target_compile_options(ballistics_cli PRIVATE -Wall -Wextra -pedantic)
-
