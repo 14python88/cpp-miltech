@@ -43,13 +43,29 @@ long parse_long(const char* text) {
     const long value = std::strtol(text, &end, 10);
 
     if (end == text) {
-        std::abort();
+        // std::abort();
+        // Added error message and exit()
+        std::cerr << "Input contains non-numerical values" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    if (!(text != end && *end== '\0')){
+
     }
 
     return value;
 }
 
 int parse_int(const char* text) {
+
+    // Added a check for numerical values in input
+    char* endptr = nullptr;
+    std::strtod(text, &endptr);
+    if (!(text != endptr && *endptr == '\0')){
+        std::cerr << "Input contains non-numerical values" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     return static_cast<int>(parse_long(text));
 }
 
@@ -58,7 +74,10 @@ double parse_double(const char* text) {
     const double value = std::strtod(text, &end);
 
     if (end == text) {
-        std::abort();
+        // std::abort()
+        // Added error message and exit()
+        std::cerr << "Input contains non-numerical values" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     return value;
@@ -68,6 +87,12 @@ Frame parse_frame(char line[]) {
     char* fields[EXPECTED_FIELD_COUNT] = {};
     const int field_count = split_line(line, fields, EXPECTED_FIELD_COUNT);
     (void)field_count;
+
+    // Added a check for number of fileds
+    if(field_count != EXPECTED_FIELD_COUNT){
+        std::cerr << "Incorrect number of fields in input; expected " << EXPECTED_FIELD_COUNT << " fields" << std::endl;
+        exit(EXIT_FAILURE);
+    };
 
     Frame frame{};
     frame.timestamp_ms = parse_long(fields[0]);
@@ -90,7 +115,7 @@ int read_frames(const char* path, Frame frames[], int max_frames) {
     std::ifstream input{path};
     if (!input) {
         std::cerr << "error: failed to open input file: " << path << '\n';
-        return 0;
+        exit(EXIT_FAILURE);
     }
 
     int frame_count = 0;
@@ -105,6 +130,11 @@ int read_frames(const char* path, Frame frames[], int max_frames) {
             frames[frame_count] = parse_frame(line);
             ++frame_count;
         }
+    }
+    // Added a check for missing frames
+    if(frame_count == 0){
+        std::cerr << "Missing frames in the input file" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     return frame_count;
@@ -121,19 +151,52 @@ Summary summarize(const Frame frames[], int frame_count) {
     double temperature_sum = 0.0;
 
     for (int i = 0; i < frame_count; ++i) {
+
+        // Added checks for valid frame values
+        if(i > 0){
+            if(frames[i].timestamp_ms - frames[i-1].timestamp_ms <= 0){
+                std::cerr << "Invalid delta timestamp_ms between frames " << i-1 << " and " << i << "; timestamp_ms must increase between frames" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        if(frames[0].seq != 1){
+            std::cerr << "Invalid seq value; expected initial seq = 1" << std::endl;
+            exit(EXIT_FAILURE);      
+        }
+        if(i > 0){
+            if(frames[i].seq - frames[i-1].seq != 1){
+                std::cerr << "Invalid delta seq between frames " << i-1 << " and " << i << "; expected increase by 1" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        if(frames[i].voltage_v <= 0){
+            std::cerr << "Invalid voltage_v at frame " << i << " ; voltage values must be positive" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if(frames[i].temperature_c < -40 || frames[i].temperature_c > 120){
+            std::cerr << "Invalid temperature value at frame " << i << "; expected range [-40; 120]" << std::endl;
+            exit(EXIT_FAILURE);    
+        }
+        if(frames[i].gps_fix != 0 && frames[i].gps_fix != 1){
+            std::cerr << "Invalid gps_fix at frame " << i << " ; expected 1 or 0" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if(frames[i].satellites < 0){
+            std::cerr << "Invalid number of satellites at frame " << i << " ; expected >= 0" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
         if (frames[i].voltage_v < summary.voltage_min) {
             summary.voltage_min = frames[i].voltage_v;
         }
-
         if (frames[i].voltage_v > summary.voltage_max) {
             summary.voltage_max = frames[i].voltage_v;
         }
-
-        temperature_sum += frames[i].temperature_c;
-
         if (frames[i].voltage_v < 22.0) {
             ++summary.low_voltage_frames;
         }
+        temperature_sum += frames[i].temperature_c;
+
     }
 
     const int temperature_tenths = static_cast<int>(temperature_sum * 10.0) / frame_count;
