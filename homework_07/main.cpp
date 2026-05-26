@@ -222,30 +222,21 @@ class JsonTargetProvider : public ITargetProvider {
 
 class FileConfigLoader : public IConfigLoader {
     public:
+        json j_config;
+        json j_ammo;
         DroneConfig config;
         Ammo ammo;
 
-        FileConfigLoader(const char* config_path, const char* ammo_path) : config({}), ammo({}) {
-            ifstream config_json(config_path);
-            json data = json::parse(config_json);
-            DroneConfig config = {
-                .startPos = {data["drone"]["position"]["x"], data["drone"]["position"]["y"]},
-                .ammo_name = data["ammo"],
-                .altitude = data["drone"]["altitude"],
-                .initial_dir = data["drone"]["initialDirection"],
-                .attack_speed = data["drone"]["attackSpeed"],
-                .acceleration_path = data["drone"]["accelerationPath"],
-                .array_time_step = data["targetArrayTimeStep"],
-                .sim_time_step = data["simulation"]["timeStep"],
-                .hit_radius = data["simulation"]["hitRadius"],
-                .angular_speed = data["drone"]["angularSpeed"],
-                .turn_threshold = data["drone"]["turnThreshold"]
-            };
+        FileConfigLoader(const char* configPath, const char* ammoPath) : j_config(""), j_ammo(""), config({}), ammo({}) {
+            ifstream config_json(configPath);
+            j_config = json::parse(config_json);
             config_json.close();
+            ifstream ammo_json(ammoPath);
+            j_ammo = json::parse(ammo_json);
+            ammo_json.close();
+        };
 
-            ifstream ammo_json(ammo_path);
-            json j_ammo;
-            ammo_json >> j_ammo;
+        Ammo getAmmoParams() override {
             Ammo* arsenal = new Ammo[5]{};
                 for(int i = 0; i < 5; ++i){
                 arsenal[i].name =  j_ammo[i]["name"];
@@ -253,7 +244,6 @@ class FileConfigLoader : public IConfigLoader {
                 arsenal[i].drag = j_ammo[i]["drag"];
                 arsenal[i].lift = j_ammo[i]["lift"];
             };
-            ammo_json.close();
             // Checking ammo name
             bool found = 0;
             for(int n = 0; n < 5; ++n){
@@ -268,14 +258,25 @@ class FileConfigLoader : public IConfigLoader {
                 cout << "Unknown ammo type!\n";
                 exit(EXIT_FAILURE);
             };
-        };
-
-        DroneConfig getConfig() override {
-            return config;
-        };
-
-        Ammo getAmmoParams() override {
             return ammo;
+        };
+
+        DroneConfig getConfig(){
+
+            DroneConfig droneConfig = {
+                .startPos = {j_config["drone"]["position"]["x"], j_config["drone"]["position"]["y"]},
+                .ammo_name = j_config["ammo"],
+                .altitude = j_config["drone"]["altitude"],
+                .initial_dir = j_config["drone"]["initialDirection"],
+                .attack_speed = j_config["drone"]["attackSpeed"],
+                .acceleration_path = j_config["drone"]["accelerationPath"],
+                .array_time_step = j_config["targetArrayTimeStep"],
+                .sim_time_step = j_config["simulation"]["timeStep"],
+                .hit_radius = j_config["simulation"]["hitRadius"],
+                .angular_speed = j_config["drone"]["angularSpeed"],
+                .turn_threshold = j_config["drone"]["turnThreshold"]
+            };
+            return droneConfig;
         };
         
         ~FileConfigLoader() {};
@@ -347,7 +348,7 @@ class AnalyticalSolver : public IBallisticSolver {
             }else{
                 firePos = {
                     .x = dronePos.x + (targetPos.x - dronePos.x) * ratio,
-                    .y = fire_pos_y = dronePos.y + (targetPos.y - dronePos.y) * ratio
+                    .y = dronePos.y + (targetPos.y - dronePos.y) * ratio
                 };
             };
             return firePos;
@@ -369,10 +370,10 @@ ITargetProvider*  createProvider(ProviderType type, const char* path) {
 };
 // REMEMBER DELETE !!!
 
-IConfigLoader*    createLoader(LoaderType type, const char* config_path, const char* ammo_path) {
+IConfigLoader*    createLoader(LoaderType type, const char* configPath, const char* ammoPath) {
     switch(type) {
         case LoaderType::FILE:
-            return new FileConfigLoader(config_path, ammo_path);
+            return new FileConfigLoader(configPath, ammoPath);
         default: return nullptr;
     }
 };
@@ -388,7 +389,79 @@ IBallisticSolver* createSolver(SolverType type) {
 // REMEMBER DELETE !!!
 
 class MissionProcessor {
+    IConfigLoader* loader;
+    IBallisticSolver* solver;
+    ITargetProvider* targets;
     public:
+        int idx;
+        int target_count;
+        int time_steps;
+        DroneConfig config;
+        Ammo ammo;
+
+        MissionProcessor(LoaderType configSource, const char* configPath, const char* ammoPath, ProviderType targetsSource, const char* providerPath, SolverType solverType) 
+        : loader(nullptr), solver(nullptr), targets(nullptr), idx(0), target_count(0), time_steps(0), config({}), ammo({}) {
+            loader = createLoader(configSource, configPath, ammoPath);
+            targets = createProvider(targetsSource, providerPath);
+            solver = createSolver(solverType);
+        };
+
+        void init() {
+            config = loader->getConfig();
+            ammo = loader->getAmmoParams();
+            target_count = targets->getTargetCount();
+        };
+
+        int step(int index, int time, Coord dronePos, float alt, const Ammo& ammo, float att_speed, float acc_path) {
+            Coord targetPos = targets->getTargetPos(index, time);
+            solver->solve(dronePos, targetPos, alt, ammo, att_speed, acc_path);
+            return idx++;
+        };
+
+        bool hasNext(int targets_counter) {
+            if(idx < targets_counter) {
+                return true;
+            }else{
+                return false;
+            }
+        };
+
+        bool reset() {
+            if(idx == target_count){
+                return true;
+            }else{
+            return false;
+            }
+        };
+
+};
+
+int main() {
+
+    MissionProcessor mission(LoaderType::FILE, "config.json", "ammo.json", ProviderType::JSON, "targets.json", SolverType::ANALYTICAL);
+
+
+    int steps = 0;
+    while (steps < 10000){
+
+        mission.init();
+        while (mission.hasNext(mission.target_count)) {
+            mission.step(mission.idx, mission.idx, mission.config.startPos, mission.config.altitude, mission.ammo, mission.config.attack_speed, mission.config.acceleration_path);
+        };
+        mission.reset();
+        steps++;
+}
+
+
+
+
+
+        MissionProcessor(IBallisticSolver* s, ITargetProvider* t) : solver(s), targets(t) {}
+
+    Coord computeDropPoint(int index, float time, Coord dronePos, float alt, const Ammo& ammo, float att_speed, float acc_path) {
+        Coord targetPos = targets->getTargetPos(index, time);
+        return solver->solve(dronePos, targetPos, alt, ammo, att_speed, acc_path);
+    }
         init(configSource)
         hasNext()
         step()
@@ -596,20 +669,20 @@ void dronePosChange(const float& angle, float& current_dir, const float& preferr
 
 // DroneConfig getConfig(){
 //     ifstream config_json("config.json");
-//     json data = json::parse(config_json);
+//     json j_config = json::parse(config_json);
 
 //     DroneConfig droneConfig = {
-//         .startPos = {data["drone"]["position"]["x"], data["drone"]["position"]["y"]},
-//         .ammo_name = data["ammo"],
-//         .altitude = data["drone"]["altitude"],
-//         .initial_dir = data["drone"]["initialDirection"],
-//         .attack_speed = data["drone"]["attackSpeed"],
-//         .acceleration_path = data["drone"]["accelerationPath"],
-//         .array_time_step = data["targetArrayTimeStep"],
-//         .sim_time_step = data["simulation"]["timeStep"],
-//         .hit_radius = data["simulation"]["hitRadius"],
-//         .angular_speed = data["drone"]["angularSpeed"],
-//         .turn_threshold = data["drone"]["turnThreshold"]
+//         .startPos = {j_config["drone"]["position"]["x"], j_config["drone"]["position"]["y"]},
+//         .ammo_name = j_config["ammo"],
+//         .altitude = j_config["drone"]["altitude"],
+//         .initial_dir = j_config["drone"]["initialDirection"],
+//         .attack_speed = j_config["drone"]["attackSpeed"],
+//         .acceleration_path = j_config["drone"]["accelerationPath"],
+//         .array_time_step = j_config["targetArrayTimeStep"],
+//         .sim_time_step = j_config["simulation"]["timeStep"],
+//         .hit_radius = j_config["simulation"]["hitRadius"],
+//         .angular_speed = j_config["drone"]["angularSpeed"],
+//         .turn_threshold = j_config["drone"]["turnThreshold"]
 //     };
 //     return droneConfig;
 // }
@@ -624,54 +697,6 @@ int main(){
     JsonTargetProvider targetProvider;
     int target_count = targetProvider.getTargetCount();
 
-    // // Retrieving ammo parameters
-    // ifstream config_json("ammo.json");
-    // json j_ammo;
-    // config_json >> j_ammo;
-    // Ammo* arsenal = new Ammo[N]{};
-    // for(int i = 0; i < N; ++i){
-    //     arsenal[i].name =  j_ammo[i]["name"];
-    //     arsenal[i].mass = j_ammo[i]["mass"];
-    //     arsenal[i].drag = j_ammo[i]["drag"];
-    //     arsenal[i].lift = j_ammo[i]["lift"];
-    // };
-
-    // // Checking ammo name
-    // bool found = 0;
-    // for(int n = 0; n < N; ++n){
-    //     if(config.ammo_name == arsenal[n].name){
-    //         found = 1;
-    //         m = arsenal[n].mass;
-    //         d = arsenal[n].drag;
-    //         l = arsenal[n].lift;
-    //     };
-    // };
-    // if(found == 0){
-    //     cout << "Unknown ammo type!" << endl;
-    //     return 1;
-    // };
-
-    // // Retrieving targets info
-    // ifstream targets_json("targets.json");
-    // json j_targets;
-    // targets_json >> j_targets;
-    // int target_count = j_targets["targetCount"];
-    // int time_steps = j_targets["timeSteps"];
-    // Coord** targets = new Coord*[target_count]{};
-    // for (int i = 0; i < target_count; ++i){
-    //     targets[i] = new Coord[time_steps]{};
-    // };
-
-    // // Moving targets coordinates from json to 2d array
-    // for (int i = 0; i < target_count; ++i) {
-    //     const auto& positions = j_targets["targets"][i]["positions"];
-    //     for (int j = 0; j < time_steps; ++j) {
-    //         targets[i][j].x = positions[j]["x"];
-    //         targets[i][j].y = positions[j]["y"];
-    //     };
-    // };
-
-    // Calculating additional parameters
     float acceleration = config.attack_speed * config.attack_speed / (2 * config.acceleration_path);
     float t_acceleration = (2 * config.acceleration_path) / config.attack_speed;
     current_direction = config.initial_dir;
@@ -680,8 +705,7 @@ int main(){
     
 
     AnalyticalSolver solver;
-    Coord firePos = solver.solve() 
-    calculateConst(m, d, l);
+    Coord firePos = solver.solve();
 
     // Initializing arrays from structs
     PrefParameters prefParameters;
