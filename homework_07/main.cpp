@@ -170,6 +170,15 @@ class IBallisticSolver {
         virtual ~IBallisticSolver() {}
 };
 
+class IPreferredSelector {
+    public:
+        virtual Coord* interpolateTargets() = 0;
+        virtual Coord* extrapolateTargets() = 0;
+        virtual PrefParameters calculatePrefParams() = 0;
+        virtual Coord getDronePosNow(const float& angle, const float& preferred_direction) = 0;
+        virtual ~IPreferredSelector() {}
+};
+
 class JsonTargetProvider : public ITargetProvider {
     public:
         int target_count;
@@ -357,6 +366,229 @@ class AnalyticalSolver : public IBallisticSolver {
         ~AnalyticalSolver() {}
 };
 
+class PreferredSelector : public IPreferredSelector {
+    float calculateBearing(Coord dronePosNow, Coord targetPosPredicted) {
+        float bearing = atan2(targetPosPredicted.y - dronePosNow.y, targetPosPredicted.x - dronePosNow.x);
+        return bearing;
+    };
+
+    float normalizeAngle(float& angle) {
+        while (angle > M_PI){
+            angle -= 2.0f * M_PI;
+        };
+        while (angle < -M_PI){
+            angle += 2.0f * M_PI;
+        };
+        return angle;
+    };
+
+    float getDeltaAngle(const float& target, const float& current) {
+        float diff = target - current;
+        return normalizeAngle(diff);
+    };
+
+    float getTotalTime(const float& angle, const float& distance, const float& acceleration, const float& t_acceleration){
+        float total_time = 0.0f;
+            if((fabs(angle) <= config.turn_threshold) && (current_speed == 0.0)){
+                total_time = total_time + t_acceleration + distance / config.attack_speed;
+
+            }else if((fabs(angle) <= config.turn_threshold) && (current_speed == config.attack_speed)){
+                total_time = total_time + distance / config.attack_speed;
+
+            }else if((fabs(angle) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
+                total_time = total_time + ((config.attack_speed - current_speed) / acceleration) + (distance / config.attack_speed);
+
+            }else if((fabs(angle) > config.turn_threshold) && (current_speed == 0.0)){
+                total_time = total_time + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
+
+            }else if((fabs(angle) > config.turn_threshold) && (current_speed == config.attack_speed)){
+                total_time = total_time + t_acceleration + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
+
+            }else if((fabs(angle) > config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
+                total_time = total_time + (current_speed / acceleration) + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
+            };
+            return total_time;
+    };
+
+    public:
+        Coord** targets;
+        Coord dronePosNow;
+        Coord* targetPosNow;
+        Coord* targetPosPredicted;
+        DroneConfig config;
+        Params* params;
+        PrefParameters prefParameters;
+        Coord* dropPos;
+        DroneState state;
+
+        int target_count;
+        int time_steps;
+        float current_time;
+        float total_time;
+        float current_dir;
+        float acceleration;
+        float t_acceleration;
+
+        PreferredSelector(int targets_count, const DroneConfig& config, Coord** targets, Coord* dropPos, int time_steps, float current_time) {
+            this->target_count = targets_count;
+            this->time_steps = time_steps;
+            this->config = config;
+            this->targets = targets;
+            this->dropPos = dropPos;
+            this->current_time = current_time;
+            this->targetPosNow = new Coord[target_count]{};
+            this->targetPosPredicted = new Coord[target_count]{};
+            this->params = new Params[target_count]{};
+        };
+
+        Coord* interpolateTargets() override {
+        int index = (int)floor(current_time / config.array_time_step);
+        int idx = index % time_steps;
+        int next = (idx + 1) % time_steps;
+        float frac = (current_time / config.array_time_step) - floor(current_time / config.array_time_step);
+        // (current_time - index * config.array_time_step) / config.array_time_step;
+        for(int j = 0; j < target_count; ++j){
+            if (sim_step == 0){
+                targetPosNow[j] = targets[j][0];
+            }else{
+                targetPosNow[j] =          
+                    {
+                    .x = targets[j][idx].x + (targets[j][next].x - targets[j][idx].x) * frac,
+                    .y = targets[j][idx].y + (targets[j][next].y - targets[j][idx].y) * frac
+                    };
+                };
+            };
+            return this->targetPosNow;
+        };
+
+        Coord* extrapolateTargets() override {
+            int index = (int)floor(current_time / config.array_time_step);
+            int idx = index % time_steps;
+            int next = (idx + 1) % time_steps;
+            Coord* targetDcoord = new Coord[time_steps]{};
+            targetDcoord = new Coord[time_steps]{};
+
+            for(int j = 0; j < target_count; ++j){
+                targetDcoord[j] = targets[j][next] - targets[j][idx];
+                float targetSpeedX[5]{}, targetSpeedY[5]{};
+                targetSpeedX[j] = targetDcoord[j].x / config.array_time_step;
+                targetSpeedY[j] = targetDcoord[j].y / config.array_time_step;
+
+                targetPosPredicted[j] = {
+                    targetPosNow[j].x + targetSpeedX[j] * (this->total_time),
+                    targetPosNow[j].y + targetSpeedY[j] * (this->total_time)
+                };
+            };
+            return this->targetPosPredicted;
+        };
+        
+        Coord getDronePosNow(const float& angle, const float& preferred_direction) override {
+            this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
+            this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
+
+            if((fabs(angle) <= config.turn_threshold) && current_speed == 0.0){
+                this->state = ACCELERATING;
+                //  Drone turns instantly
+                this->current_dir = preferred_direction;
+                current_speed += acceleration * config.sim_time_step;
+                current_speed = min(current_speed, config.attack_speed);
+                dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
+                dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
+
+            }else if((fabs(angle) <= config.turn_threshold) && (current_speed == config.attack_speed) && (current_speed != 0.0)){
+                this->state = MOVING;
+                // Drone turns instantly
+                this->current_dir = preferred_direction;
+                // Drone moves to drop point
+                current_speed = config.attack_speed;
+                dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
+                dronePosNow.y += current_speed * config.sim_time_step* sin(current_dir);
+
+            }else if((fabs(angle) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
+                this->state = ACCELERATING;
+                // Drone turns instantly
+                this->current_dir = preferred_direction;
+                // Drone accelerates
+                current_speed = current_speed + acceleration * config.sim_time_step;
+                current_speed = min(current_speed, config.attack_speed);
+                dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
+                dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
+
+            }else if((fabs(angle) > config.turn_threshold) && current_speed == 0.0){
+                this->state = TURNING;
+                // Drone turns
+                if(angle < 0){
+                    current_dir -= config.angular_speed * config.sim_time_step;
+                }else if(angle > 0){
+                    current_dir += config.angular_speed * config.sim_time_step;
+                };
+
+            }else if((fabs(angle) > config.turn_threshold) && (current_speed == config.attack_speed) && (current_speed != 0.0)){
+                this->state = DECELERATING;
+                // Drone decelerates
+                current_speed = current_speed - acceleration * config.sim_time_step;
+                current_speed = max(0.0f, current_speed);
+                dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
+                dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
+
+            }else if((fabs(angle) > config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
+                this->state = DECELERATING;
+                // Drone decelerates
+                current_speed = current_speed - acceleration * config.sim_time_step;
+                current_speed = max(0.0f, current_speed);
+                dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
+                dronePosNow.y += current_speed * config.sim_time_step* sin(current_dir);
+            };
+            return this->dronePosNow;
+        };
+
+        PrefParameters calculatePrefParams() override {
+
+            for(int j = 0; j < target_count; ++j){
+                params[j].bearing = calculateBearing(dronePosNow, targetPosPredicted[j]);
+                params[j].delta_angle = getDeltaAngle(params[j].bearing, this->current_dir);
+                params[j].drop_dist = sqrt(pow((dropPos[j].x - dronePosNow.x),2) + pow((dropPos[j].y - dronePosNow.y),2));
+                params[j].total_time = getTotalTime(params[j].delta_angle, params[j].drop_dist, acceleration, t_acceleration);
+            };
+            // Updating the Preferred Parameters array
+            float min_time = FLT_MAX;
+            for (int i = 0; i < target_count; ++i){
+                if(params[i].total_time  < min_time){
+                    prefParameters = {
+                        params[i].total_time,
+                        i,
+                        targetPosPredicted[i],
+                        dropPos[i],
+                        params[i].bearing,
+                        params[i].delta_angle,
+                        params[i].drop_dist,
+                        (float)sqrt(pow((targetPosPredicted[i].x - dronePosNow.x),2) + pow((targetPosPredicted[i].y - dronePosNow.y),2))
+                    };
+                };
+            };
+            return this->prefParameters;
+        };
+
+        ~PreferredSelector() {
+            for (int i = 0; i < target_count; i++){
+                delete[] (targets[i]);
+                targets[i] = nullptr;
+            };
+            delete [] targets;
+            delete [] dronePosNow;
+            delete [] targetPosNow;
+            delete [] targetPosPredicted;
+            delete [] params;
+            delete [] dropPos;
+                targets = nullptr;
+                targetPosNow = nullptr;
+                targetPosPredicted = nullptr;
+                params = nullptr;
+                dropPos = nullptr;
+                dronePosNow = nullptr;
+        }
+};
+
 enum class SolverType   { ANALYTICAL };
 enum class ProviderType { JSON };
 enum class LoaderType   { FILE };
@@ -388,6 +620,10 @@ IBallisticSolver* createSolver(SolverType type) {
 };
 // REMEMBER DELETE !!!
 
+IPreferredSelector* createPreferredSelector() {
+    return new PreferredSelector(0, {}, nullptr, nullptr, 0, 0);
+};
+
 class MissionProcessor {
     IConfigLoader* loader;
     IBallisticSolver* solver;
@@ -401,15 +637,15 @@ class MissionProcessor {
 
         MissionProcessor(LoaderType configSource, const char* configPath, const char* ammoPath, ProviderType targetsSource, const char* providerPath, SolverType solverType) 
         : loader(nullptr), solver(nullptr), targets(nullptr), idx(0), target_count(0), time_steps(0), config({}), ammo({}) {
-            loader = createLoader(configSource, configPath, ammoPath);
-            targets = createProvider(targetsSource, providerPath);
-            solver = createSolver(solverType);
+            this->loader = createLoader(configSource, configPath, ammoPath);
+            this->targets = createProvider(targetsSource, providerPath);
+            this->solver = createSolver(solverType);
         };
 
         void init() {
-            config = loader->getConfig();
-            ammo = loader->getAmmoParams();
-            target_count = targets->getTargetCount();
+            this->config = loader->getConfig();
+            this->ammo = loader->getAmmoParams();
+            this->target_count = targets->getTargetCount();
         };
 
         int step(int index, int time, Coord dronePos, float alt, const Ammo& ammo, float att_speed, float acc_path) {
