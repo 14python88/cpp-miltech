@@ -711,8 +711,8 @@ class MissionProcessor {
 
 int main() {
 
-    auto* prov = createProvider(ProviderType::JSON, "targets.json");
-    auto* loader = createLoader(LoaderType::FILE, "config.json", "ammo.json");
+    auto* prov = createProvider(ProviderType::JSON, "homework_07/src/targets.json");
+    auto* loader = createLoader(LoaderType::FILE, "homework_07/src/config.json", "homework_07/src/ammo.json");
     auto* solver = createSolver(SolverType::ANALYTICAL);
     auto* preferredSelector = createPreferredSelector();
 
@@ -728,7 +728,7 @@ int main() {
     mission.solve(mission.config.altitude, mission.ammo, mission.config.attack_speed);
 
     // Preparing json output
-    ofstream fout("simulation.json");
+    ofstream fout("homework_07/src/simulation.json");
     json out;
     out["totalSteps"] = 0;
     out["steps"] = json::array();
