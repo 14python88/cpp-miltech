@@ -173,7 +173,7 @@ class IBallisticSolver {
     public:
         SolveResult THSolveResult;
         virtual void solve(float altitude, Ammo ammo, float att_speed) = 0;
-        virtual Coord ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) = 0;
+        virtual void ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) = 0;
         virtual ~IBallisticSolver() {}
 };
 
@@ -198,10 +198,10 @@ class IPreferredSelector {
         float t_acceleration;
         float current_speed;
 
-        virtual Coord* interpolateTargets() = 0;
-        virtual Coord* extrapolateTargets() = 0;
-        virtual PrefParameters calculatePrefParams() = 0;
-        virtual Coord getDronePosNow(const float& angle, const float& preferred_direction) = 0;
+        virtual void interpolateTargets() = 0;
+        virtual void extrapolateTargets() = 0;
+        virtual void calculatePrefParams() = 0;
+        virtual void getDronePosNow(const float& angle, const float& preferred_direction) = 0;
         virtual ~IPreferredSelector() {}
 };
 
@@ -360,7 +360,7 @@ class AnalyticalSolver : public IBallisticSolver {
 
         };
 
-        Coord ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) override {
+        void ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) override {
 
             // CALCULATING BALLISTICS
             float D = sqrt(pow((targetPos.x - dronePos.x),2) + pow((targetPos.y - dronePos.y),2));
@@ -384,12 +384,11 @@ class AnalyticalSolver : public IBallisticSolver {
                     .y = dronePosMid.y + (targetPos.y - dronePosMid.y) * ratio_mid
                 };
             }else{
-                firePos = {
+                this->firePos = {
                     .x = dronePos.x + (targetPos.x - dronePos.x) * ratio,
                     .y = dronePos.y + (targetPos.y - dronePos.y) * ratio
                 };
             };
-            return firePos;
         };
 
         ~AnalyticalSolver() override {}
@@ -475,7 +474,7 @@ class PreferredSelector : public IPreferredSelector {
 
         };
 
-        Coord* interpolateTargets() override {
+        void interpolateTargets() override {
         int index = (int)floor(current_time / config.array_time_step);
         int idx = index % time_steps;
         int next = (idx + 1) % time_steps;
@@ -484,17 +483,16 @@ class PreferredSelector : public IPreferredSelector {
             if (sim_step == 0){
                 targetPosNow[j] = targets[j][0];
             }else{
-                targetPosNow[j] =          
+                this->targetPosNow[j] =          
                     {
                     .x = targets[j][idx].x + (targets[j][next].x - targets[j][idx].x) * frac,
                     .y = targets[j][idx].y + (targets[j][next].y - targets[j][idx].y) * frac
                     };
                 };
             };
-            return this->targetPosNow;
         };
 
-        Coord* extrapolateTargets() override {
+        void extrapolateTargets() override {
             int index = (int)floor(current_time / config.array_time_step);
             int idx = index % time_steps;
             int next = (idx + 1) % time_steps;
@@ -507,15 +505,14 @@ class PreferredSelector : public IPreferredSelector {
                 targetSpeedX[j] = targetDcoord[j].x / config.array_time_step;
                 targetSpeedY[j] = targetDcoord[j].y / config.array_time_step;
 
-                targetPosPredicted[j] = {
+                this->targetPosPredicted[j] = {
                     targetPosNow[j].x + targetSpeedX[j] * (this->total_time),
                     targetPosNow[j].y + targetSpeedY[j] * (this->total_time)
                 };
             };
-            return this->targetPosPredicted;
         };
         
-        Coord getDronePosNow(const float& angle, const float& preferred_direction) override {
+    void getDronePosNow(const float& angle, const float& preferred_direction) override {
             this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
             this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
 
@@ -572,10 +569,9 @@ class PreferredSelector : public IPreferredSelector {
                 this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_dir);
                 this->dronePosNow.y += this->current_speed * this->config.sim_time_step* sin(this->current_dir);
             };
-            return this->dronePosNow;
         };
 
-        PrefParameters calculatePrefParams() override {
+    void calculatePrefParams() override {
 
             for(int j = 0; j < target_count; ++j){
                 params[j].bearing = calculateBearing(dronePosNow, targetPosPredicted[j]);
@@ -587,7 +583,7 @@ class PreferredSelector : public IPreferredSelector {
             float min_time = FLT_MAX;
             for (int i = 0; i < target_count; ++i){
                 if(params[i].total_time  < min_time){
-                    prefParameters = {
+                    this->prefParameters = {
                         params[i].total_time,
                         i,
                         targetPosPredicted[i],
@@ -599,7 +595,6 @@ class PreferredSelector : public IPreferredSelector {
                     };
                 };
             };
-            return this->prefParameters;
         };
 
         ~PreferredSelector() override {

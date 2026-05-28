@@ -10,10 +10,6 @@ static constexpr const char* NEGATIVE_ZD_FILE = TEST_DATA_DIR "/test_neg_zd.txt"
 TEST(Ballistics, ComputesKnownDropPoint)
 {
   const BallisticsInput input{
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 
     .xd = 100.0,
 
@@ -31,13 +27,6 @@ TEST(Ballistics, ComputesKnownDropPoint)
 
     .ammo_name = "VOG-17",
 
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
       .xd = 100.0,
       .yd = 100.0,
       .zd = 100.0,
@@ -46,16 +35,7 @@ TEST(Ballistics, ComputesKnownDropPoint)
       .attack_speed = 10.0,
       .acceleration_path = 10.0,
       .ammo_name = "VOG-17",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+
   };
 
   AmmoInput ammo = getAmmoInput(input.ammo_name.c_str());
@@ -79,10 +59,6 @@ TEST(Ballistics, ComputesKnownDropPoint)
 TEST(Ballistics, ComputesMidPoint)
 {
   const BallisticsInput input{
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 
     .xd = 100.0,
 
@@ -100,13 +76,6 @@ TEST(Ballistics, ComputesMidPoint)
 
     .ammo_name = "VOG-17",
 
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
       .xd = 100.0,
       .yd = 100.0,
       .zd = 100.0,
@@ -115,16 +84,6 @@ TEST(Ballistics, ComputesMidPoint)
       .attack_speed = 10.0,
       .acceleration_path = 10.0,
       .ammo_name = "VOG-17",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
   };
 
   AmmoInput ammo = getAmmoInput(input.ammo_name.c_str());
@@ -144,33 +103,6 @@ TEST(Ballistics, ComputesMidPoint)
   EXPECT_NEAR(drop_point.y, 125.241, 0.01);
 }
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-// Test for unknown ammo name
-TEST(GetAmmoTest, UnknownAmmoExit)
-{
-  EXPECT_EXIT(getAmmoInput("unknown_ammo"), ::testing::ExitedWithCode(EXIT_FAILURE), "Unknown ammo type!");
-}
-
-// Test for zero altitude
-TEST(ReadInputZdTest, ZeroAltitudeExit)
-{
-  EXPECT_EXIT(readInput(ZERO_ZD_FILE), ::testing::ExitedWithCode(EXIT_FAILURE), "Altitude must be above zero!");
-}
-
-// Test for negative altitude
-TEST(ReadInputZdTest, NegativeAltitudeExit)
-{
-  EXPECT_EXIT(readInput(NEGATIVE_ZD_FILE), ::testing::ExitedWithCode(EXIT_FAILURE), "Altitude must be above zero!");
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 // Test for unknown ammo name exit
 TEST(GetAmmoTest, UnknownAmmoExit) {
 
@@ -199,5 +131,4 @@ TEST(ReadInputZdTest, NegativeAltitudeExit) {
     ::testing::ExitedWithCode(EXIT_FAILURE),
     "Altitude must be above zero!"
   );
->>>>>>> Stashed changes
 }
