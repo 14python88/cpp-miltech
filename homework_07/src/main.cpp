@@ -172,8 +172,8 @@ class IConfigLoader{
 class IBallisticSolver {
     public:
         SolveResult THSolveResult;
-        virtual void solve(float altitude, Ammo ammo, float att_speed) = 0;
-        virtual void ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) = 0;
+        virtual SolveResult solve(float altitude, Ammo ammo, float att_speed) = 0;
+        virtual Coord ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) = 0;
         virtual ~IBallisticSolver() {}
 };
 
@@ -198,10 +198,10 @@ class IPreferredSelector {
         float t_acceleration;
         float current_speed;
 
-        virtual void interpolateTargets() = 0;
-        virtual void extrapolateTargets() = 0;
-        virtual void calculatePrefParams() = 0;
-        virtual void getDronePosNow(const float& angle, const float& preferred_direction) = 0;
+        virtual Coord* interpolateTargets() = 0;
+        virtual Coord* extrapolateTargets() = 0;
+        virtual PrefParameters calculatePrefParams() = 0;
+        virtual Coord getDronePosNow(const float& angle, const float& preferred_direction) = 0;
         virtual ~IPreferredSelector() {}
 };
 
@@ -329,7 +329,7 @@ class AnalyticalSolver : public IBallisticSolver {
 
         };
 
-        void solve(float altitude, Ammo ammo, float att_speed) override {
+        SolveResult solve(float altitude, Ammo ammo, float att_speed) override {
             // CALCULATING CONSTANTS
             float a = ammo.drag * g * ammo.mass - 2 * ammo.drag * ammo.drag * ammo.lift * att_speed;
             float b = (-3) * g * ammo.mass * ammo.mass + 3 * ammo.drag * ammo.lift * ammo.mass * att_speed;
@@ -356,9 +356,10 @@ class AnalyticalSolver : public IBallisticSolver {
             };
 
             this->THSolveResult = {t_int, h_int};
+            return this->THSolveResult;
         };
 
-        void ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) override {
+        Coord ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) override {
 
             // CALCULATING BALLISTICS
             float D = sqrt(pow((targetPos.x - dronePos.x),2) + pow((targetPos.y - dronePos.y),2));
@@ -381,11 +382,13 @@ class AnalyticalSolver : public IBallisticSolver {
                     .x = dronePosMid.x + (targetPos.x - dronePosMid.x) * ratio_mid,
                     .y = dronePosMid.y + (targetPos.y - dronePosMid.y) * ratio_mid
                 };
+                return firePos;
             }else{
                 this->firePos = {
                     .x = dronePos.x + (targetPos.x - dronePos.x) * ratio,
                     .y = dronePos.y + (targetPos.y - dronePos.y) * ratio
                 };
+                return firePos;
             };
         };
 
@@ -472,7 +475,7 @@ class PreferredSelector : public IPreferredSelector {
 
         };
 
-        void interpolateTargets() override {
+        Coord* interpolateTargets() override {
         int index = (int)floor(current_time / config.array_time_step);
         int idx = index % time_steps;
         int next = (idx + 1) % time_steps;
@@ -488,9 +491,10 @@ class PreferredSelector : public IPreferredSelector {
                     };
                 };
             };
+            return this->targetPosNow;
         };
 
-        void extrapolateTargets() override {
+        Coord* extrapolateTargets() override {
             int index = (int)floor(current_time / config.array_time_step);
             int idx = index % time_steps;
             int next = (idx + 1) % time_steps;
@@ -508,9 +512,10 @@ class PreferredSelector : public IPreferredSelector {
                     targetPosNow[j].y + targetSpeedY[j] * (this->total_time)
                 };
             };
+            return this->targetPosPredicted;
         };
         
-    void getDronePosNow(const float& angle, const float& preferred_direction) override {
+    Coord getDronePosNow(const float& angle, const float& preferred_direction) override {
             this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
             this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
 
@@ -567,9 +572,10 @@ class PreferredSelector : public IPreferredSelector {
                 this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_dir);
                 this->dronePosNow.y += this->current_speed * this->config.sim_time_step* sin(this->current_dir);
             };
+            return this->dronePosNow;
         };
 
-    void calculatePrefParams() override {
+    PrefParameters calculatePrefParams() override {
 
             for(int j = 0; j < target_count; ++j){
                 params[j].bearing = calculateBearing(dronePosNow, targetPosPredicted[j]);
@@ -593,6 +599,7 @@ class PreferredSelector : public IPreferredSelector {
                     };
                 };
             };
+            return this->prefParameters;
         };
 
         ~PreferredSelector() override {
@@ -671,12 +678,12 @@ class MissionProcessor {
             this->ammo = loader->getAmmoParams();
         };
 
-        void solve(float altitude, Ammo ammo, float att_speed) {
-            solver->solve(altitude, ammo, att_speed);
+        SolveResult solve(float altitude, Ammo ammo, float att_speed) {
+            return solver->solve(altitude, ammo, att_speed);
         };
 
-        void ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) {
-            solver->ballistics(dronePos, targetPos, h, acc_path);
+        Coord ballistics(Coord dronePos, Coord targetPos, float h, float acc_path) {
+            return solver->ballistics(dronePos, targetPos, h, acc_path);
         };
 
         // void step(int index, int time) {
@@ -723,9 +730,9 @@ int main() {
     mission.init();
 
     // Calculating t, h parameters for ballistics
-    mission.solve(mission.config.altitude, mission.ammo, mission.config.attack_speed);
+    SolveResult result = mission.solve(mission.config.altitude, mission.ammo, mission.config.attack_speed);
 
-    cout << "T = " << mission.solver->THSolveResult.t << endl;
+    cout << "T = " << result.t << endl;
 
     // Preparing json output
     ofstream fout("homework_07/src/simulation.json");
@@ -744,8 +751,8 @@ int main() {
     LOG("ammo mass = " << mission.ammo.mass);
     LOG("ammo drag = " << mission.ammo.drag);
     LOG("ammo lift = " << mission.ammo.lift);
-    LOG("ammo flight time = " << solver->THSolveResult.t);
-    LOG("ammo flight distance = " << solver->THSolveResult.h);
+    LOG("ammo flight time = " << result.t);
+    LOG("ammo flight distance = " << result.h);
 
     // Main loop commence.
     while (sim_steps < 10000){
@@ -754,34 +761,34 @@ int main() {
         // };
         // mission.reset();
 
-        mission.preferredSelector->interpolateTargets();
-        mission.ballistics(preferredSelector->dronePosNow, preferredSelector->prefParameters.targetPredictedPos, solver->THSolveResult.h, mission.config.acceleration_path);
-        mission.preferredSelector->extrapolateTargets();
-        mission.ballistics(preferredSelector->dronePosNow, preferredSelector->prefParameters.targetPredictedPos, solver->THSolveResult.h, mission.config.acceleration_path);
-        mission.preferredSelector->calculatePrefParams();
-        mission.preferredSelector->getDronePosNow(preferredSelector->prefParameters.delta_angle_pref, preferredSelector->prefParameters.bearing_pref);
+        Coord interpolatedTargets = *mission.preferredSelector->interpolateTargets();
+        Coord firePos = mission.ballistics(preferredSelector->dronePosNow, interpolatedTargets, solver->THSolveResult.h, mission.config.acceleration_path);
+        Coord extrapolatedTargets = *mission.preferredSelector->extrapolateTargets();
+        firePos = mission.ballistics(preferredSelector->dronePosNow, extrapolatedTargets, solver->THSolveResult.h, mission.config.acceleration_path);
+        PrefParameters prefParameters = mission.preferredSelector->calculatePrefParams();
+        Coord dronePosNow = mission.preferredSelector->getDronePosNow(prefParameters.delta_angle_pref, prefParameters.bearing_pref);
         steps[sim_steps] = {
-            mission.preferredSelector->dronePosNow,
-            mission.preferredSelector->prefParameters.bearing_pref,
+            dronePosNow,
+            prefParameters.bearing_pref,
             mission.preferredSelector->state,
-            mission.preferredSelector->prefParameters.target_pref
+            prefParameters.target_pref
             };
 
         DEBUG("Current time is " << current_time);
-        DEBUG("Number of simulation steps = " << sim_steps + 1 << "Current drone coordinates are " << mission.preferredSelector->dronePosNow.x << ", " << mission.preferredSelector->dronePosNow.y);
+        DEBUG("Number of simulation steps = " << sim_steps + 1 << "Current drone coordinates are " << dronePosNow.x << ", " << dronePosNow.y);
         DEBUG("Current drone direction is " << mission.preferredSelector->current_dir);
-        DEBUG("Preferred target bearing is: " << pmission.referredSelector->prefParameters.bearing_pref);
+        DEBUG("Preferred target bearing is: " << prefParameters.bearing_pref);
         DEBUG("Current drone speed is " << mission.preferredSelector->current_speed);
-        DEBUG("Prefered drop point coordinates are: " << mission.preferredSelector->prefParameters.dropPosPref.x << ", " << mission.preferredSelector->prefParameters.dropPosPref.y);
-        DEBUG("Preferred target index is " << mission.preferredSelector->prefParameters.target_pref);
-        DEBUG("Current distance to preferred drop point is " << mission.preferredSelector->prefParameters.drop_dist_pref);
-        DEBUG("Current distance to predicted target point is " << mission.preferredSelector->prefParameters.dist_target_predicted);
+        DEBUG("Prefered drop point coordinates are: " << prefParameters.dropPosPref.x << ", " << prefParameters.dropPosPref.y);
+        DEBUG("Preferred target index is " << prefParameters.target_pref);
+        DEBUG("Current distance to preferred drop point is " << prefParameters.drop_dist_pref);
+        DEBUG("Current distance to predicted target point is " << prefParameters.dist_target_predicted);
 
         Coord bombLand = {
-            mission.preferredSelector->dronePosNow.x + mission.solver->THSolveResult.h * cos(mission.preferredSelector->current_dir),
-            mission.preferredSelector->dronePosNow.y + mission.solver->THSolveResult.h * sin(mission.preferredSelector->current_dir)
+            dronePosNow.x + mission.solver->THSolveResult.h * cos(mission.preferredSelector->current_dir),
+            dronePosNow.y + mission.solver->THSolveResult.h * sin(mission.preferredSelector->current_dir)
         };
-        delta_target_bomb = sqrt(pow((bombLand.x - mission.preferredSelector->prefParameters.targetPredictedPos.x),2)+pow((bombLand.y - mission.preferredSelector->prefParameters.targetPredictedPos.y),2));
+        delta_target_bomb = sqrt(pow((bombLand.x - prefParameters.targetPredictedPos.x),2)+pow((bombLand.y - prefParameters.targetPredictedPos.y),2));
         
         // Outputting simulation.json
         json step;
@@ -790,21 +797,21 @@ int main() {
         step["direction"] = steps[sim_step].direction;
         step["state"] = steps[sim_step].state;
         step["targetIndex"] = steps[sim_step].target_idx;
-        step["dropPoint"] = {{"x", mission.preferredSelector->prefParameters.dropPosPref.x}, {"y", mission.preferredSelector->prefParameters.dropPosPref.y}};
+        step["dropPoint"] = {{"x", prefParameters.dropPosPref.x}, {"y", prefParameters.dropPosPref.y}};
         step["aimPoint"] = {{"x", bombLand.x}, {"y", bombLand.y}};
-        step["predictedTarget"] = {{"x", mission.preferredSelector->prefParameters.targetPredictedPos.x}, {"y", mission.preferredSelector->prefParameters.targetPredictedPos.y}};  // â† moved down
+        step["predictedTarget"] = {{"x", prefParameters.targetPredictedPos.x}, {"y", prefParameters.targetPredictedPos.y}};  // â† moved down
         out["steps"].push_back(step);
         fout.seekp(0);
         fout << out.dump(2);
         fout.flush();
 
         // Check for possibility of bomb release
-        if((fabs(mission.preferredSelector->current_dir - mission.preferredSelector->prefParameters.bearing_pref) < 1e-3) && (mission.preferredSelector->current_speed == mission.config.attack_speed) && (mission.preferredSelector->prefParameters.drop_dist_pref <= mission.config.hit_radius) && (mission.preferredSelector->prefParameters.dist_target_predicted <= mission.solver->THSolveResult.h + mission.config.hit_radius) && (delta_target_bomb <= mission.config.hit_radius)){
+        if((fabs(mission.preferredSelector->current_dir - prefParameters.bearing_pref) < 1e-3) && (mission.preferredSelector->current_speed == mission.config.attack_speed) && (prefParameters.drop_dist_pref <= mission.config.hit_radius) && (prefParameters.dist_target_predicted <= mission.solver->THSolveResult.h + mission.config.hit_radius) && (delta_target_bomb <= mission.config.hit_radius)){
             
             LOG("BOMB AWAY! Simulation complete. Steps: " << sim_step + 1);
             LOG("Bomb flight distance is " << mission.solver->THSolveResult.h);
             LOG("Bomb flight time is " << t);
-            LOG("Expected target coordinates are " << mission.preferredSelector->prefParameters.targetPredictedPos.x << ", " << mission.preferredSelector->prefParameters.targetPredictedPos.y);
+            LOG("Expected target coordinates are " << prefParameters.targetPredictedPos.x << ", " << prefParameters.targetPredictedPos.y);
             LOG("Expected bomb land coordinates are " << bombLand.x << ", " << bombLand.y);
             LOG("Delta between predicted target position and bomb land position is " << delta_target_bomb);
 
