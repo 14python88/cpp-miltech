@@ -186,7 +186,7 @@ class IPreferredSelector {
         DroneConfig config;
         Params* params;
         PrefParameters prefParameters;
-        Coord* dropPos;
+        Coord dropPos;
         DroneState state;
 
         int target_count;
@@ -198,9 +198,10 @@ class IPreferredSelector {
         float t_acceleration;
         float current_speed;
 
-        virtual Coord* interpolateTargets() = 0;
-        virtual Coord* extrapolateTargets() = 0;
+        virtual Coord* interpolateTargets(int sim_step, float current_time) = 0;
+        virtual Coord* extrapolateTargets(float current_time) = 0;
         virtual PrefParameters calculatePrefParams() = 0;
+        virtual void getDropPos (Coord dropPos) = 0;    
         virtual Coord getDronePosNow(const float& angle, const float& preferred_direction) = 0;
         virtual ~IPreferredSelector() {}
 };
@@ -210,14 +211,20 @@ class JsonTargetProvider : public ITargetProvider {
         int target_count;
         int time_steps;
         Coord** targets;
+        const char* targets_path;
 
-        JsonTargetProvider(const char* path) : target_count(0), time_steps(0), targets(nullptr) {
+        JsonTargetProvider(const char* path) {
+            this->targets_path = path;
+            getTargets();
+        };
+
+        void getTargets() {
 
             json j_targets;
-            ifstream targets_json(path);
+            ifstream targets_json(this->targets_path);
             j_targets = json::parse(targets_json);
-            target_count = j_targets["targetCount"];
-            time_steps = j_targets["timeSteps"];
+            this->target_count = j_targets["targetCount"];
+            this->time_steps = j_targets["timeSteps"];
             // Retrieving coordinates from json file
             targets = new Coord*[target_count]{};
             for (int i = 0; i < target_count; ++i){
@@ -227,23 +234,23 @@ class JsonTargetProvider : public ITargetProvider {
             for (int i = 0; i < target_count; ++i) {
                 const auto& positions = j_targets["targets"][i]["positions"];
                 for (int j = 0; j < time_steps; ++j) {
-                    targets[i][j].x = positions[j]["x"];
-                    targets[i][j].y = positions[j]["y"];
+                    this->targets[i][j].x = positions[j]["x"];
+                    this->targets[i][j].y = positions[j]["y"];
                 };
             };
             targets_json.close();
         };
 
         int getTargetCount() override {
-            return target_count;
+            return this->target_count;
         };
 
         int getTimeSteps() override {
-            return time_steps;
+            return this->time_steps;
         };
 
         Coord getTargetPos(int index, int time) override {
-            return targets[index][time];
+            return this->targets[index][time];
         };
 
         ~JsonTargetProvider() {
@@ -419,22 +426,22 @@ class PreferredSelector : public IPreferredSelector {
     float getTotalTime(const float& angle, const float& distance, const float& acceleration, const float& t_acceleration){
         float total_time = 0.0f;
             if((fabs(angle) <= config.turn_threshold) && (current_speed == 0.0)){
-                total_time = total_time + t_acceleration + distance / config.attack_speed;
+                total_time += t_acceleration + distance / config.attack_speed;
 
             }else if((fabs(angle) <= config.turn_threshold) && (current_speed == config.attack_speed)){
-                total_time = total_time + distance / config.attack_speed;
+                total_time += distance / config.attack_speed;
 
             }else if((fabs(angle) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
-                total_time = total_time + ((config.attack_speed - current_speed) / acceleration) + (distance / config.attack_speed);
+                total_time += ((config.attack_speed - current_speed) / acceleration) + (distance / config.attack_speed);
 
             }else if((fabs(angle) > config.turn_threshold) && (current_speed == 0.0)){
-                total_time = total_time + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
+                total_time += (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
 
             }else if((fabs(angle) > config.turn_threshold) && (current_speed == config.attack_speed)){
-                total_time = total_time + t_acceleration + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
+                total_time += t_acceleration + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
 
             }else if((fabs(angle) > config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
-                total_time = total_time + (current_speed / acceleration) + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
+                total_time += (current_speed / acceleration) + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
             };
             return total_time;
     };
@@ -447,8 +454,8 @@ class PreferredSelector : public IPreferredSelector {
         DroneConfig config;
         Params* params;
         PrefParameters prefParameters;
-        Coord* dropPos;
-        DroneState state;
+        Coord dropPos;
+        DroneState state = STOPPED;
 
         int target_count;
         int time_steps;
@@ -459,63 +466,63 @@ class PreferredSelector : public IPreferredSelector {
         float t_acceleration;
         float current_speed;
 
-        PreferredSelector(int targets_count, const DroneConfig& config, Coord** targets, Coord* dropPos, int time_steps, float current_time) {
+        PreferredSelector(int targets_count, const DroneConfig& config, Coord** targets, int time_steps){
+            dronePosNow = config.startPos;
+            targetPosNow = new Coord[targets_count]{};
+            targetPosPredicted = new Coord[targets_count]{};
+            params = new Params[targets_count]{};
             this->target_count = targets_count;
             this->time_steps = time_steps;
             this->config = config;
             this->targets = targets;
-            this->dropPos = dropPos;
-            this->current_time = current_time;
-            this->targetPosNow = new Coord[target_count]{};
-            this->targetPosPredicted = new Coord[target_count]{};
-            this->params = new Params[target_count]{};
-            this->state = STOPPED;
             this->current_dir = config.initial_dir;
-            this->current_speed = 0.0f;
-
         };
 
-        Coord* interpolateTargets() override {
-        int index = (int)floor(current_time / config.array_time_step);
-        int idx = index % time_steps;
-        int next = (idx + 1) % time_steps;
-        float frac = (current_time / config.array_time_step) - floor(current_time / config.array_time_step);
-        for(int j = 0; j < target_count; ++j){
+        Coord* interpolateTargets(int sim_step, float current_time) override {
+        int index = (int)floor(current_time / this->config.array_time_step);
+        int idx = index % 120;
+        int next = (idx + 1) %  120;
+        float frac = (current_time / this->config.array_time_step) - floor(current_time / this->config.array_time_step);
+        for(int j = 0; j < this->target_count; ++j){
             if (sim_step == 0){
-                targetPosNow[j] = targets[j][0];
+                this->targetPosNow[j] = this->targets[j][0];
             }else{
                 this->targetPosNow[j] =          
                     {
-                    .x = targets[j][idx].x + (targets[j][next].x - targets[j][idx].x) * frac,
-                    .y = targets[j][idx].y + (targets[j][next].y - targets[j][idx].y) * frac
+                    .x = this->targets[j][idx].x + (this->targets[j][next].x - this->targets[j][idx].x) * frac,
+                    .y = this->targets[j][idx].y + (this->targets[j][next].y - this->targets[j][idx].y) * frac
                     };
                 };
             };
             return this->targetPosNow;
         };
 
-        Coord* extrapolateTargets() override {
-            int index = (int)floor(current_time / config.array_time_step);
-            int idx = index % time_steps;
-            int next = (idx + 1) % time_steps;
-            Coord* targetDcoord = new Coord[time_steps]{};
-            targetDcoord = new Coord[time_steps]{};
+        Coord* extrapolateTargets(float current_time) override {
+            int index = (int)floor(current_time / this->config.array_time_step);
+            int idx = index % 120;
+            int next = (idx + 1) %  120;
+            Coord* targetDcoord = new Coord[120]{};
+            targetDcoord = new Coord[120]{};
 
-            for(int j = 0; j < target_count; ++j){
-                targetDcoord[j] = targets[j][next] - targets[j][idx];
+            for(int j = 0; j < this->target_count; ++j){
+                targetDcoord[j] = this->targets[j][next] - this->targets[j][idx];
                 float targetSpeedX[5]{}, targetSpeedY[5]{};
-                targetSpeedX[j] = targetDcoord[j].x / config.array_time_step;
-                targetSpeedY[j] = targetDcoord[j].y / config.array_time_step;
+                targetSpeedX[j] = targetDcoord[j].x / this->config.array_time_step;
+                targetSpeedY[j] = targetDcoord[j].y / this->config.array_time_step;
 
                 this->targetPosPredicted[j] = {
-                    targetPosNow[j].x + targetSpeedX[j] * (this->total_time),
-                    targetPosNow[j].y + targetSpeedY[j] * (this->total_time)
+                    this->targetPosNow[j].x + targetSpeedX[j] * (this->total_time),
+                    this->targetPosNow[j].y + targetSpeedY[j] * (this->total_time)
                 };
             };
             return this->targetPosPredicted;
         };
+
+        void getDropPos(Coord dropPos) override {
+            this->dropPos = dropPos;
+        };
         
-    Coord getDronePosNow(const float& angle, const float& preferred_direction) override {
+        Coord getDronePosNow(const float& angle, const float& preferred_direction) override {
             this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
             this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
 
@@ -535,7 +542,7 @@ class PreferredSelector : public IPreferredSelector {
                 // Drone moves to drop point
                 this->current_speed = this->config.attack_speed;
                 this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_dir);
-                this->dronePosNow.y += this->current_speed * this->config.sim_time_step* sin(this->current_dir);
+                this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_dir);
 
             }else if((fabs(angle) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
                 this->state = ACCELERATING;
@@ -580,7 +587,7 @@ class PreferredSelector : public IPreferredSelector {
             for(int j = 0; j < target_count; ++j){
                 params[j].bearing = calculateBearing(dronePosNow, targetPosPredicted[j]);
                 params[j].delta_angle = getDeltaAngle(params[j].bearing, this->current_dir);
-                params[j].drop_dist = sqrt(pow((dropPos[j].x - dronePosNow.x),2) + pow((dropPos[j].y - dronePosNow.y),2));
+                params[j].drop_dist = sqrt(pow((dropPos.x - dronePosNow.x),2) + pow((dropPos.y - dronePosNow.y),2));
                 params[j].total_time = getTotalTime(params[j].delta_angle, params[j].drop_dist, acceleration, t_acceleration);
             };
             // Updating the Preferred Parameters array
@@ -591,7 +598,7 @@ class PreferredSelector : public IPreferredSelector {
                         params[i].total_time,
                         i,
                         targetPosPredicted[i],
-                        dropPos[i],
+                        dropPos,
                         params[i].bearing,
                         params[i].delta_angle,
                         params[i].drop_dist,
@@ -611,12 +618,10 @@ class PreferredSelector : public IPreferredSelector {
             delete [] targetPosNow;
             delete [] targetPosPredicted;
             delete [] params;
-            delete [] dropPos;
                 targets = nullptr;
                 targetPosNow = nullptr;
                 targetPosPredicted = nullptr;
                 params = nullptr;
-                dropPos = nullptr;
         }
 };
 
@@ -652,7 +657,7 @@ IBallisticSolver* createSolver(SolverType type) {
 // REMEMBER DELETE !!!
 
 IPreferredSelector* createPreferredSelector() {
-    return new PreferredSelector(0, {}, nullptr, nullptr, 0, 0);
+    return new PreferredSelector(0, {}, nullptr, 0);
 };
 
 class MissionProcessor {
@@ -674,6 +679,7 @@ class MissionProcessor {
 
         void init() {
             this->target_count = targets->getTargetCount();
+            this->time_steps = targets->getTimeSteps();
             this->config = loader->getConfig();
             this->ammo = loader->getAmmoParams();
         };
@@ -724,6 +730,7 @@ int main() {
     MissionProcessor mission(prov, loader, solver, preferredSelector);
 
     int sim_steps = 0;
+    float current_time = 0.0f;
     SimStep* steps = new SimStep[10000]{};
 
     // Inintializing congfg parameters, ammo parameters, target count.
@@ -761,10 +768,14 @@ int main() {
         // };
         // mission.reset();
 
-        Coord interpolatedTargets = *mission.preferredSelector->interpolateTargets();
-        Coord firePos = mission.ballistics(preferredSelector->dronePosNow, interpolatedTargets, solver->THSolveResult.h, mission.config.acceleration_path);
-        Coord extrapolatedTargets = *mission.preferredSelector->extrapolateTargets();
-        firePos = mission.ballistics(preferredSelector->dronePosNow, extrapolatedTargets, solver->THSolveResult.h, mission.config.acceleration_path);
+        Coord* interpolatedTargets = mission.preferredSelector->interpolateTargets(sim_steps, current_time);
+
+        cout << interpolatedTargets[sim_steps].x << ", " << interpolatedTargets[sim_steps].y << endl;
+
+        Coord firePos = mission.ballistics(preferredSelector->dronePosNow, interpolatedTargets[sim_steps], result.h, mission.config.acceleration_path);
+        Coord* extrapolatedTargets = mission.preferredSelector->extrapolateTargets(current_time);
+        firePos = mission.ballistics(preferredSelector->dronePosNow, extrapolatedTargets[sim_steps], result.h, mission.config.acceleration_path);
+        mission.preferredSelector->getDropPos(firePos);
         PrefParameters prefParameters = mission.preferredSelector->calculatePrefParams();
         Coord dronePosNow = mission.preferredSelector->getDronePosNow(prefParameters.delta_angle_pref, prefParameters.bearing_pref);
         steps[sim_steps] = {
@@ -785,8 +796,8 @@ int main() {
         DEBUG("Current distance to predicted target point is " << prefParameters.dist_target_predicted);
 
         Coord bombLand = {
-            dronePosNow.x + mission.solver->THSolveResult.h * cos(mission.preferredSelector->current_dir),
-            dronePosNow.y + mission.solver->THSolveResult.h * sin(mission.preferredSelector->current_dir)
+            dronePosNow.x + result.h * cos(mission.preferredSelector->current_dir),
+            dronePosNow.y + result.h * sin(mission.preferredSelector->current_dir)
         };
         delta_target_bomb = sqrt(pow((bombLand.x - prefParameters.targetPredictedPos.x),2)+pow((bombLand.y - prefParameters.targetPredictedPos.y),2));
         
@@ -806,10 +817,10 @@ int main() {
         fout.flush();
 
         // Check for possibility of bomb release
-        if((fabs(mission.preferredSelector->current_dir - prefParameters.bearing_pref) < 1e-3) && (mission.preferredSelector->current_speed == mission.config.attack_speed) && (prefParameters.drop_dist_pref <= mission.config.hit_radius) && (prefParameters.dist_target_predicted <= mission.solver->THSolveResult.h + mission.config.hit_radius) && (delta_target_bomb <= mission.config.hit_radius)){
+        if((fabs(mission.preferredSelector->current_dir - prefParameters.bearing_pref) < 1e-3) && (mission.preferredSelector->current_speed == mission.config.attack_speed) && (prefParameters.drop_dist_pref <= mission.config.hit_radius) && (prefParameters.dist_target_predicted <= result.h + mission.config.hit_radius) && (delta_target_bomb <= mission.config.hit_radius)){
             
             LOG("BOMB AWAY! Simulation complete. Steps: " << sim_step + 1);
-            LOG("Bomb flight distance is " << mission.solver->THSolveResult.h);
+            LOG("Bomb flight distance is " << result.h);
             LOG("Bomb flight time is " << t);
             LOG("Expected target coordinates are " << prefParameters.targetPredictedPos.x << ", " << prefParameters.targetPredictedPos.y);
             LOG("Expected bomb land coordinates are " << bombLand.x << ", " << bombLand.y);
@@ -822,6 +833,7 @@ int main() {
         };
         mission.preferredSelector->current_time += mission.preferredSelector->config.sim_time_step;
         sim_steps++;
+        current_time += mission.preferredSelector->config.sim_time_step;
         };
     return 0;
     }
