@@ -34,15 +34,13 @@ using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;
 using namespace std;
 
-const float pi = M_PI, g = 9.81;
-
 int main(){
 
     auto* provider = createProvider(SourceType::JSON, "homework_08/data/targets.json");
     auto* loader = createLoader(LoaderType::JSON, "homework_08/data/config.json", "homework_08/data/ammo.json");
     auto* solver = createSolver(SolverType::ANALYTICAL);
 
-    MissionProcessor mission(&provider, &loader, &solver);
+    MissionProcessor mission(provider, loader, solver);
     mission.init();
 
     std::vector<SimStep>  steps(10000);

@@ -14,7 +14,7 @@ target_include_directories(ballistics_3 PUBLIC include include/interfaces includ
 
 add_executable(ballistics_3_cli src/main.cpp)
 target_link_libraries(ballistics_3_cli PRIVATE  MissionProcessor
-                                                config/Structs
+                                                Structs
                                                 ITargetProvider
                                                 IConfigLoader
                                                 IBallisticSolver
