@@ -432,10 +432,16 @@ public:
     DroneConfig config;
     Ammo ammo;
     std::vector<vector<Coord>> targets;
-
+    DroneState state;
     PrefParameters prefParameters;
     float delta_target_bomb;
+    float current_direction;
+    float current_speed;
+    float current_time;
+    float acceleration;
+    float t_acceleration;
     Coord bombLand;
+    Coord dronePosNow;
 
     MissionProcessor(ITargetProvider* t, IConfigLoader* l, IBallisticSolver* s) : provider(t), loader(l), solver(s) {}
 
@@ -447,65 +453,41 @@ public:
         this->time_steps = provider->getTimeSteps();
     };
 
-    // std::vector<std::vector<Coord>> getTargetsCoord(std::string path) {
-    //     return targets->getTargetsCoord(path);
-    // };
-
-    // int getTargetCount() {
-    //     return targets->getTargetCount();
-    // };
-
-    // int getTimeSteps() {
-    //     return targets->getTimeSteps();
-    // };
-
-    // DroneConfig getConfig() {
-    //     return config->getConfig();
-    // };
-    
-    // Ammo getAmmo(const DroneConfig& droneConfig) {
-    //     return config->getAmmo(droneConfig);
-    // };
-
     ResultConst solve(const DroneConfig droneConfig, const Ammo& ammo) {
         return solver->solve(droneConfig, ammo);
     };
     
-    Coord calculateBallistics(const float& acceleration_path, const Coord& dronePos, const Coord& targetPos, const float& h) {
-        return solver->calculateBallistics(acceleration_path, dronePos, targetPos, h);
+    Coord calculateBallistics(const Coord& targetPos, const float& h) {
+        return solver->calculateBallistics(this->config.acceleration_path, this->dronePosNow, targetPos, h);
     };
 
-    Params calculateParameters(const Coord& dronePos, const Coord& dropPos, const float& current_time, const float& acceleration, const float& t_acceleration) {
+    Params calculateParameters(const Coord& dropPos) {
         Params params;
-        params.bearing     = this->calculateBearing(dronePos, dropPos);
+        params.bearing     = this->calculateBearing(this->dronePosNow, dropPos);
         params.delta_angle = this->getDeltaAngle(params.bearing, config.initial_dir);
-        params.drop_dist   = sqrt(pow((dropPos.x - dronePos.x),2) + pow((dropPos.y - dronePos.y),2));
-        params.total_time  = this->getTotalTime(this->config, current_time, params.delta_angle, params.drop_dist, acceleration, t_acceleration);
+        params.drop_dist   = sqrt(pow((dropPos.x - this->dronePosNow.x),2) + pow((dropPos.y - this->dronePosNow.y),2));
+        params.total_time  = this->getTotalTime(this->config, this->current_time, params.delta_angle, params.drop_dist, this->acceleration, this->t_acceleration);
         return params;
     };
 
         // Interpolates target positions at the current simulation time
     void interpolateTargets(
         std::vector<Coord>& targetPosNow,
-        const float& current_time,
         const int& sim_step,
-        const float& array_time_step,
-        const int& target_count,
-        const ResultConst& resultConst,
-        const std::vector<std::vector<Coord>>& targets)
+        const ResultConst& resultConst)
     {
-        int index = (int)floor(current_time / array_time_step);
+        int index = (int)floor(this->current_time / this->config.array_time_step);
         int idx = index % 120;
         int next = (idx + 1) % 120;
-        float frac = (resultConst.t / array_time_step) - floor(resultConst.t / array_time_step);
+        float frac = (resultConst.t / this->config.array_time_step) - floor(resultConst.t / this->config.array_time_step);
 
-        for (int j = 0; j < target_count; ++j) {
+        for (int j = 0; j < this->target_count; ++j) {
             if (sim_step == 0) {
                 targetPosNow[j] = targets[j][0];
             } else {
                 targetPosNow[j] = {
-                    targets[j][idx].x + (targets[j][next].x - targets[j][idx].x) * frac,
-                    targets[j][idx].y + (targets[j][next].y - targets[j][idx].y) * frac
+                    this->targets[j][idx].x + (this->targets[j][next].x - this->targets[j][idx].x) * frac,
+                    this->targets[j][idx].y + (this->targets[j][next].y - this->targets[j][idx].y) * frac
                 };
             }
         }
@@ -514,24 +496,20 @@ public:
     // Extrapolates predicted target positions based on current velocity
     void extrapolateTargets(
         std::vector<Coord>& targetPosPredicted,
-        const float& current_time,
-        const float& array_time_step,
-        const int& target_count,
         const std::vector<Coord>& targetPosNow,
-        const std::vector<Params>& params,
-        const std::vector<std::vector<Coord>>& targets)
+        const std::vector<Params>& params)
         {
         std::vector<Coord>    targetDcoord(5);
-        int index = (int)floor(current_time / array_time_step);
+        int index = (int)floor(this->current_time / this->config.array_time_step);
         int idx = index % 120;
         int next = (idx + 1) % 120;
 
-        for (int j = 0; j < target_count; ++j) {
-            targetDcoord[j] = targets[j][next] - targets[j][idx];
+        for (int j = 0; j < this->target_count; ++j) {
+            targetDcoord[j] = this->targets[j][next] - this->targets[j][idx];
 
             Velocity speed = {
-                targetDcoord[j].x / array_time_step,
-                targetDcoord[j].y / array_time_step
+                targetDcoord[j].x / this->config.array_time_step,
+                targetDcoord[j].y / this->config.array_time_step
             };
 
             targetPosPredicted[j] = {
@@ -566,12 +544,10 @@ public:
     void updatePrefParams (
         const std::vector<Params>& params,
         const std::vector<Coord>& targetPosPredicted,
-        const std::vector<Coord>& dropPos,
-        const int& target_count,
-        const Coord& dronePosNow
+        const std::vector<Coord>& dropPos
         ) {
         float min_time = FLT_MAX;
-        for (int i = 0; i < target_count; ++i) {
+        for (int i = 0; i < this->target_count; ++i) {
             if (params[i].total_time < min_time) {
                 min_time = params[i].total_time;
                 this->prefParameters = {
@@ -582,76 +558,76 @@ public:
                     params[i].bearing,
                     params[i].delta_angle,
                     params[i].drop_dist,
-                    (float)sqrt(pow((targetPosPredicted[i].x - dronePosNow.x),2) + pow((targetPosPredicted[i].y - dronePosNow.y),2))
+                    (float)sqrt(pow((targetPosPredicted[i].x - this->dronePosNow.x),2) + pow((targetPosPredicted[i].y - this->dronePosNow.y),2))
                 };
             }
         }
     };
 
        
-    SimStep updateSteps (const Coord& dronePosNow, const float& current_direction, const DroneState& state) {
+    SimStep updateSteps () {
         SimStep steps = {
-            dronePosNow,
-            current_direction,
-            state,
+            this->dronePosNow,
+            this->current_direction,
+            this->state,
             this->prefParameters.target_pref
         };
         return steps;
     };
 
-    void dronePosChange(const DroneConfig& config, float& current_speed, const float& angle, float& current_dir, float& preferred_direction, const float& acceleration, Coord& dronePosNow, DroneState& state){
-        if((fabs(angle) <= config.turn_threshold) && current_speed == 0.0){
-            state = ACCELERATING;
-            current_dir = preferred_direction;
-            current_speed = current_speed + acceleration * config.sim_time_step;
-            current_speed = min(current_speed, config.attack_speed);
-            dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
-            dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
-        } else if((fabs(angle) <= config.turn_threshold) && (current_speed == config.attack_speed) && (current_speed != 0.0)){
-            state = MOVING;
-            current_dir = preferred_direction;
-            current_speed = config.attack_speed;
-            dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
-            dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
-        } else if((fabs(angle) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
-            state = ACCELERATING;
-            current_dir = preferred_direction;
-            current_speed = current_speed + acceleration * config.sim_time_step;
-            current_speed = min(current_speed, config.attack_speed);
-            dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
-            dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
-        } else if((fabs(angle) > config.turn_threshold) && current_speed == 0.0){
-            state = TURNING;
-            if(angle < 0){
-                current_dir -= config.angular_speed * config.sim_time_step;
-            } else if(angle > 0){
-                current_dir += config.angular_speed * config.sim_time_step;
+    void dronePosChange(){
+        if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && this->current_speed == 0.0){
+            this->state = ACCELERATING;
+            this->current_direction = this->prefParameters.bearing_pref;
+            this->current_speed += this->acceleration * this->config.sim_time_step;
+            this->current_speed = min(this->current_speed, this->config.attack_speed);
+            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
+            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
+        } else if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && (this->current_speed == this->config.attack_speed) && (this->current_speed != 0.0)){
+            this->state = MOVING;
+            this->current_direction = this->prefParameters.bearing_pref;
+            this->current_speed = this->config.attack_speed;
+            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
+            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
+        } else if((fabs(this->prefParameters.delta_angle_pref) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
+            this->state = ACCELERATING;
+            this->current_direction = this->prefParameters.bearing_pref;
+            this->current_speed = this->current_speed + this->acceleration * this->config.sim_time_step;
+            this->current_speed = min(this->current_speed, config.attack_speed);
+            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
+            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
+        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && this->current_speed == 0.0){
+            this->state = TURNING;
+            if(this->prefParameters.delta_angle_pref < 0){
+                this->current_direction -= this->config.angular_speed * this->config.sim_time_step;
+            } else if(this->prefParameters.delta_angle_pref > 0){
+                this->current_direction += this->config.angular_speed * this->config.sim_time_step;
             }
-        } else if((fabs(angle) > config.turn_threshold) && (current_speed == config.attack_speed) && (current_speed != 0.0)){
-            state = DECELERATING;
-            current_speed = current_speed - acceleration * config.sim_time_step;
-            current_speed = max(0.0f, current_speed);
-            dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
-            dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
-        } else if((fabs(angle) > config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
-            state = DECELERATING;
-            current_speed = current_speed - acceleration * config.sim_time_step;
-            current_speed = max(0.0f, current_speed);
-            dronePosNow.x += current_speed * config.sim_time_step * cos(current_dir);
-            dronePosNow.y += current_speed * config.sim_time_step * sin(current_dir);
+        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (this->current_speed == this->config.attack_speed) && (this->current_speed != 0.0)){
+            this->state = DECELERATING;
+            this->current_speed = this->current_speed - this->acceleration * this->config.sim_time_step;
+            this->current_speed = max(0.0f, this->current_speed);
+            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
+            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
+        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (0 < this->current_speed) && (this->current_speed < this->config.attack_speed)){
+            this->state = DECELERATING;
+            this->current_speed = this->current_speed - this->acceleration * this->config.sim_time_step;
+            this->current_speed = max(0.0f, this->current_speed);
+            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
+            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
         }
     };
 
-    void getDropParameters(const Coord& dronePosNow, const float& h, const float& current_direction) {
+    void getDropParameters(const float& h) {
         this->bombLand = {
-            dronePosNow.x + h * cos(current_direction),
-            dronePosNow.y + h * sin(current_direction)
+            this->dronePosNow.x + h * cos(this->current_direction),
+            this->dronePosNow.y + h * sin(this->current_direction)
         };
         this->delta_target_bomb = sqrt(pow((this->bombLand.x - this->prefParameters.targetPredictedPos.x),2) + pow((this->bombLand.y - this->prefParameters.targetPredictedPos.y),2));
     };
 
-    void checkSuccess(const int& sim_step, const float& current_direction, const float& current_speed, const ResultConst& resultConst) {
-        if ((fabs(current_direction - this->prefParameters.bearing_pref) < 1e-3) && (current_speed == config.attack_speed) &&
+    void checkSuccess(const int& sim_step, const ResultConst& resultConst) {
+        if ((fabs(this->current_direction - this->prefParameters.bearing_pref) < 1e-3) && (this->current_speed == config.attack_speed) &&
             (this->prefParameters.drop_dist_pref <= this->config.hit_radius) && (this->prefParameters.dist_target_predicted <= resultConst.h + this->config.hit_radius) &&
             (this->delta_target_bomb <= this->config.hit_radius)) {
 
@@ -669,8 +645,6 @@ public:
     void changeSolver(IBallisticSolver* s) { solver = s; }
 };
 
-DroneState state = STOPPED;
-
 int main(){
 
     JSONTargetProvider provider("homework_08/src/targets.json");
@@ -687,11 +661,14 @@ int main(){
     std::vector<Params>   params(mission.target_count);
 
     // Calculating additional parameters
-    float acceleration = mission.config.attack_speed * mission.config.attack_speed / (2 * mission.config.acceleration_path);
-    float t_acceleration = (2 * mission.config.acceleration_path) / mission.config.attack_speed;
-    float current_direction = mission.config.initial_dir, current_time = 0.0f, current_speed = 0.0f;
-    Coord dronePosNow = mission.config.startPos;
+    mission.acceleration = mission.config.attack_speed * mission.config.attack_speed / (2 * mission.config.acceleration_path);
+    mission.t_acceleration = (2 * mission.config.acceleration_path) / mission.config.attack_speed;
+    mission.current_direction = mission.config.initial_dir;
+    mission.current_time = 0.0f;
+    mission.current_speed = 0.0f;
+    mission.dronePosNow = mission.config.startPos;
     int sim_step = 0;
+    mission.state = STOPPED;
 
     ResultConst resultConst = mission.solve(mission.config, mission.ammo);
 
@@ -718,23 +695,23 @@ int main(){
     // Main loop
     while (sim_step < 10000) {
 
-        mission.interpolateTargets(targetPosNow, current_time, sim_step, mission.config.array_time_step, mission.target_count, resultConst, mission.targets);
+        mission.interpolateTargets(targetPosNow, sim_step, resultConst);
         for (int j = 0; j < mission.target_count; ++j) {
-            dropPos[j] = mission.calculateBallistics(mission.config.acceleration_path, dronePosNow, targetPosNow[j], resultConst.h);
-            params[j] = mission.calculateParameters(dronePosNow, dropPos[j], current_time, acceleration, t_acceleration);
+            dropPos[j] = mission.calculateBallistics(targetPosNow[j], resultConst.h);
+            params[j] = mission.calculateParameters(dropPos[j]);
 
             if (sim_step > 0) {
-                mission.extrapolateTargets(targetPosPredicted, current_time, mission.config.array_time_step, mission.target_count, targetPosNow, params, mission.targets);
-                dropPos[j] = mission.calculateBallistics(mission.config.acceleration_path, dronePosNow, targetPosNow[j], resultConst.h);
-                params[j] = mission.calculateParameters(dronePosNow, dropPos[j], current_time, acceleration, t_acceleration);
+                mission.extrapolateTargets(targetPosPredicted, targetPosNow, params);
+                dropPos[j] = mission.calculateBallistics(targetPosNow[j], resultConst.h);
+                params[j] = mission.calculateParameters(dropPos[j]);
             }
         };
 
-        mission.updatePrefParams(params, targetPosPredicted, dropPos, mission.target_count, dronePosNow);
-        steps[sim_step] = mission.updateSteps(dronePosNow, current_direction, state);
+        mission.updatePrefParams(params, targetPosPredicted, dropPos);
+        steps[sim_step] = mission.updateSteps();
 
         // Updating drone position
-        mission.dronePosChange(mission.config, current_speed, mission.prefParameters.delta_angle_pref, current_direction, mission.prefParameters.bearing_pref, acceleration, dronePosNow, state);
+        mission.dronePosChange();
 
         DEBUG("Current time is " << current_time);
         DEBUG("Number of simulation steps = " << sim_step + 1 << " Current drone coordinates are " << dronePosNow.x << ", " << dronePosNow.y);
@@ -746,7 +723,7 @@ int main(){
         DEBUG("Current distance to preferred drop point is " << mission.prefParameters.drop_dist_pref);
         DEBUG("Current distance to predicted target point is " << mission.prefParameters.dist_target_predicted);
 
-        mission.getDropParameters(dronePosNow, resultConst.h, current_direction);
+        mission.getDropParameters(resultConst.h);
 
         // Outputting simulation.json
         json step;
@@ -763,8 +740,8 @@ int main(){
         fout << out.dump(2);
         fout.flush();
 
-        mission.checkSuccess(sim_step, current_direction, current_speed, resultConst);
-        current_time += mission.config.sim_time_step;
+        mission.checkSuccess(sim_step, resultConst);
+        mission.current_time += mission.config.sim_time_step;
         sim_step += 1;
         };
     return 0;
