@@ -9,10 +9,10 @@ enum class SolverType { ANALYTICAL };
 enum class LoaderType { JSON };
  
 ITargetProvider* createProvider(
-    SourceType type, std::string path) {};
+    SourceType type, std::string path);
 
 IBallisticSolver* createSolver(
-    SolverType type) {};
+    SolverType type);
 
 IConfigLoader* createLoader(
-    LoaderType type, std::string config_path, std::string ammo_path) {};
+    LoaderType type, std::string config_path, std::string ammo_path);

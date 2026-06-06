@@ -8,8 +8,8 @@ class JSONTargetProvider : public ITargetProvider {
     int time_steps;
     std::string path;
     public:
-        JSONTargetProvider(std::string path) {};
-        std::vector<std::vector<Coord>> getTargetsCoord() override {};
-        int getTargetCount() override {};
-        int getTimeSteps() override {};
+        JSONTargetProvider(std::string path);
+        std::vector<std::vector<Coord>> getTargetsCoord() override;
+        int getTargetCount() override;
+        int getTimeSteps() override;
 };

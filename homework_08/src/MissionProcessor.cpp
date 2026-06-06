@@ -23,12 +23,6 @@
 #else
   #define LOG(msg)
 #endif
- 
-#if ENABLE_DEBUG
-  #define DEBUG(msg) std::cout << "[DEBUG] " << msg << std::endl
-#else
-  #define DEBUG(msg)
-#endif
 
 using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;
