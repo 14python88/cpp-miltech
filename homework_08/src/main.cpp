@@ -1,3 +1,21 @@
+#include "../include/json.hpp"
+
+#include "../include/MissionProcessor.hpp"
+
+#include "../include/Structs.hpp"
+
+#include "../include/providers/JSONTargetProvider.hpp"
+
+#include "../include/config/JSONConfigLoader.hpp"
+#include "../include/config/ComponentFactory.hpp"
+
+#include "../include/solvers/AnalyticalSolver.hpp"
+
+#include "../include/interfaces/IBallisticSolver.hpp"
+#include "../include/interfaces/IConfigLoader.hpp"
+#include "../include/interfaces/ITargetProvider.hpp"
+
+
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -5,11 +23,9 @@
 #include <cstring>
 #include <cctype>
 #include <vector>
-#include <iomanip>
-#include "json.hpp"
+#include "../include/json.hpp"
 #include <cfloat>
 
-#define PARAMS_SIZE 12
 #define USE_MATH_DEFINES
 
 #define ENABLE_LOG	1
@@ -219,8 +235,6 @@ class IBallisticSolver {
 
 class AnalyticalSolver : public IBallisticSolver {
     public:
-
-
         ResultConst solve(const DroneConfig config, const Ammo& ammo) override {
             ResultConst solverResult;
             float a = ammo.drag * g * ammo.mass - 2 * ammo.drag * ammo.drag * ammo.lift * config.attack_speed;
@@ -423,8 +437,6 @@ class MissionProcessor {
         return total_time;
     }
 
-
-
 public:
 
     int target_count;
@@ -517,28 +529,6 @@ public:
                 targetPosNow[j].y + speed.vy * params[j].total_time
             };
         };
-    }
-
-    void prepareOutput(const DroneConfig& config, const Ammo& ammo, const ResultConst& resultConst) {
-        // Preparing json output
-        ofstream fout("homework_08/src/simulation.json");
-        json out;
-        out["totalSteps"] = 0;
-        out["steps"] = json::array();
-
-        LOG("Config loaded: ");
-        LOG("altitude = " << config.altitude);
-        LOG("initial preferred_direction = " << config.initial_dir);
-        LOG("attack speed = " << config.attack_speed);
-        LOG("acceleration path = " << config.acceleration_path);
-        LOG("angular speed = " << config.angular_speed);
-        LOG("turn threshold = " << config.turn_threshold);
-        LOG("Ammo found: " << config.ammo_name);
-        LOG("ammo mass = " << ammo.mass);
-        LOG("ammo drag = " << ammo.drag);
-        LOG("ammo lift = " << ammo.lift);
-        LOG("ammo flight time = " << resultConst.t);
-        LOG("ammo flight distance = " << resultConst.h);
     };
     
     void updatePrefParams (
@@ -564,7 +554,6 @@ public:
         }
     };
 
-       
     SimStep updateSteps () {
         SimStep steps = {
             this->dronePosNow,
