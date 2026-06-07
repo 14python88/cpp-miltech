@@ -14,6 +14,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # що й реальна CMake-збірка.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+enable_testing()
+
 # Домашні роботи. По мірі появи додаємо кожну окремим add_subdirectory.
 add_subdirectory(homework_04)
 add_subdirectory(homework_05)

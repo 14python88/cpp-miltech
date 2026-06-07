@@ -23,7 +23,9 @@ auto readInput(const char* path) -> BallisticsInput
   std::string input_file;
   getline(file, input_file);
   std::vector<std::string> params_list = {"xd", "yd", "zd", "target_x", "target_y", "attack_speed", "acceleration_path", "ammo_name"};
+
   std::vector<std::string> params;
+
   size_t pos = 0;
   std::string parameter;
   while ((pos = input_file.find(" ")) != std::string::npos) {
@@ -32,6 +34,11 @@ auto readInput(const char* path) -> BallisticsInput
     input_file.erase(0, pos + 1);
   };
   params.push_back(input_file);
+
+  if(params.size() != 8){
+    std::cerr << "Missing or extra fields in the input file!" << '\n';
+    exit(EXIT_FAILURE);
+  };
 
   BallisticsInput input{
     .xd = stof(params[0]),

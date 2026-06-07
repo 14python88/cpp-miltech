@@ -23,11 +23,16 @@ if(NOT CMAKE_CROSSCOMPILING)
 
     FetchContent_MakeAvailable(googletest)
 
-    add_executable(ballistics_tests tests/ballistics_tests.cpp)
-    target_link_libraries(ballistics_tests PRIVATE ballistics GTest::gtest_main)
+    add_executable(ballistics_tests
+        tests/ballistics_tests.cpp)
+
+    target_link_libraries(ballistics_tests
+        PRIVATE
+            ballistics GTest::gtest_main)
 
     target_compile_definitions(ballistics_tests
-                               PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+        PRIVATE
+            TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 
     gtest_discover_tests(ballistics_tests DISCOVERY_MODE PRE_TEST)
 

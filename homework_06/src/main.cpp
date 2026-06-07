@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-auto main(int argc, char** argv)
--> int {
+auto main(int argc, char** argv) -> int
+{
   if (argc != 2) {
     std::cerr << "usage: ballistics <input_path>" << '\n';
     return 1;
