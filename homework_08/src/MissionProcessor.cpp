@@ -1,8 +1,9 @@
-#include <interfaces/ITargetProvider.hpp>
-#include <interfaces/IConfigLoader.hpp>
-#include <interfaces/IBallisticSolver.hpp>
+#include <interfaces/ITargetProvider.h>
+#include <interfaces/IConfigLoader.h>
+#include <interfaces/IBallisticSolver.h>
+#include <MissionProcessor.h>
 
-#include <Structs.hpp>
+#include <Structs.h>
 #include <json.hpp>
 
 #include <cstdlib>
@@ -28,17 +29,16 @@ using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;
 using namespace std;
 
-class MissionProcessor {
     ITargetProvider*  provider;
     IConfigLoader* loader;
     IBallisticSolver* solver;
 
-    inline float calculateBearing(const Coord& dronePos, const Coord& targetPos) {
+    inline float MissionProcessor::calculateBearing(const Coord& dronePos, const Coord& targetPos) {
         float bearing = atan2(targetPos.y - dronePos.y, targetPos.x - dronePos.x);
         return bearing;
     };
 
-    float normalizeAngle(float& angle) {
+    float MissionProcessor::normalizeAngle(float& angle) {
         while (angle > M_PI){
             angle -= 2.0f * M_PI;
         }
@@ -48,12 +48,12 @@ class MissionProcessor {
         return angle;
     };
 
-    float getDeltaAngle(const float& target, const float& current) {
+    float MissionProcessor::getDeltaAngle(const float& target, const float& current) {
         float diff = target - current;
         return normalizeAngle(diff);
     };
 
-    float getTotalTime(const DroneConfig& config, const float& current_speed, const float& angle, const float& distance, const float& acceleration, const float& t_acceleration){
+    float MissionProcessor::getTotalTime(const DroneConfig& config, const float& current_speed, const float& angle, const float& distance, const float& acceleration, const float& t_acceleration){
         float total_time = 0.0f;
         if((fabs(angle) <= config.turn_threshold) && (current_speed == 0.0)){
             total_time = total_time + t_acceleration + distance / config.attack_speed;
@@ -69,29 +69,11 @@ class MissionProcessor {
             total_time = total_time + (current_speed / acceleration) + (fabs(angle) / config.angular_speed) + t_acceleration + (distance / config.attack_speed);
         }
         return total_time;
-    }
+    };
 
-public:
+    MissionProcessor::MissionProcessor(ITargetProvider* t, IConfigLoader* l, IBallisticSolver* s) : provider(t), loader(l), solver(s) {};
 
-    int target_count;
-    int time_steps;
-    DroneConfig config;
-    Ammo ammo;
-    std::vector<vector<Coord>> targets;
-    DroneState state;
-    PrefParameters prefParameters;
-    float delta_target_bomb;
-    float current_direction;
-    float current_speed;
-    float current_time;
-    float acceleration;
-    float t_acceleration;
-    Coord bombLand;
-    Coord dronePosNow;
-
-    MissionProcessor(ITargetProvider* t, IConfigLoader* l, IBallisticSolver* s) : provider(t), loader(l), solver(s) {}
-
-    void init() {
+    void MissionProcessor::init() {
         this->config = loader->getConfig();
         this->ammo = loader->getAmmo(this->config);
         this->targets = provider->getTargetsCoord();
@@ -99,15 +81,15 @@ public:
         this->time_steps = provider->getTimeSteps();
     };
 
-    ResultConst solve(const DroneConfig droneConfig, const Ammo& ammo) {
+    ResultConst MissionProcessor::solve(const DroneConfig droneConfig, const Ammo& ammo) {
         return solver->solve(droneConfig, ammo);
     };
     
-    Coord calculateBallistics(const Coord& targetPos, const float& h) {
+    Coord MissionProcessor::calculateBallistics(const Coord& targetPos, const float& h) {
         return solver->calculateBallistics(this->config.acceleration_path, this->dronePosNow, targetPos, h);
     };
 
-    Params calculateParameters(const Coord& dropPos) {
+    Params MissionProcessor::calculateParameters(const Coord& dropPos) {
         Params params;
         params.bearing     = this->calculateBearing(this->dronePosNow, dropPos);
         params.delta_angle = this->getDeltaAngle(params.bearing, config.initial_dir);
@@ -117,7 +99,7 @@ public:
     };
 
         // Interpolates target positions at the current simulation time
-    void interpolateTargets(
+    void MissionProcessor::interpolateTargets(
         std::vector<Coord>& targetPosNow,
         const int& sim_step,
         const ResultConst& resultConst)
@@ -140,7 +122,7 @@ public:
     }
 
     // Extrapolates predicted target positions based on current velocity
-    void extrapolateTargets(
+    void MissionProcessor::extrapolateTargets(
         std::vector<Coord>& targetPosPredicted,
         const std::vector<Coord>& targetPosNow,
         const std::vector<Params>& params)
@@ -165,7 +147,7 @@ public:
         };
     };
     
-    void updatePrefParams (
+    void MissionProcessor::updatePrefParams (
         const std::vector<Params>& params,
         const std::vector<Coord>& targetPosPredicted,
         const std::vector<Coord>& dropPos
@@ -188,7 +170,7 @@ public:
         }
     };
 
-    SimStep updateSteps () {
+    SimStep MissionProcessor::updateSteps () {
         SimStep steps = {
             this->dronePosNow,
             this->current_direction,
@@ -198,7 +180,7 @@ public:
         return steps;
     };
 
-    void dronePosChange(){
+    void MissionProcessor::dronePosChange(){
         if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && this->current_speed == 0.0){
             this->state = ACCELERATING;
             this->current_direction = this->prefParameters.bearing_pref;
@@ -241,7 +223,7 @@ public:
         }
     };
 
-    void getDropParameters(const float& h) {
+    void MissionProcessor::getDropParameters(const float& h) {
         this->bombLand = {
             this->dronePosNow.x + h * cos(this->current_direction),
             this->dronePosNow.y + h * sin(this->current_direction)
@@ -249,7 +231,7 @@ public:
         this->delta_target_bomb = sqrt(pow((this->bombLand.x - this->prefParameters.targetPredictedPos.x),2) + pow((this->bombLand.y - this->prefParameters.targetPredictedPos.y),2));
     };
 
-    void checkSuccess(const int& sim_step, const ResultConst& resultConst) {
+    void MissionProcessor::checkSuccess(const int& sim_step, const ResultConst& resultConst) {
         if ((fabs(this->current_direction - this->prefParameters.bearing_pref) < 1e-3) && (this->current_speed == config.attack_speed) &&
             (this->prefParameters.drop_dist_pref <= this->config.hit_radius) && (this->prefParameters.dist_target_predicted <= resultConst.h + this->config.hit_radius) &&
             (this->delta_target_bomb <= this->config.hit_radius)) {
@@ -265,5 +247,4 @@ public:
         }
     };
 
-    void changeSolver(IBallisticSolver* s) { solver = s; }
-};
+    void MissionProcessor::changeSolver(IBallisticSolver* s) { solver = s; }

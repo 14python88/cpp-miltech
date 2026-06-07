@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Structs.hpp>
+#include <Structs.h>
 
 class ITargetProvider {
     public:

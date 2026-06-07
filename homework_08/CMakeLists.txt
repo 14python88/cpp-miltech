@@ -9,11 +9,10 @@ add_library(ballistics_3 STATIC
     src/MissionProcessor.cpp 
     src/providers/JSONTargetProvider.cpp 
     src/config/JSONConfigLoader.cpp 
-    src/config/ComponentsFactory.cpp 
+    src/config/ComponentFactory.cpp 
     src/solvers/AnalyticalSolver.cpp 
 )
-
-target_include_directories(ballistics_3 PUBLIC include)
+target_include_directories(ballistics_3 PUBLIC include include/providers include/config include/solvers)
 
 add_executable(ballistics_3_cli src/main.cpp)
 target_link_libraries(ballistics_3_cli PRIVATE ballistics_3)

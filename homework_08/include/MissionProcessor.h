@@ -1,12 +1,16 @@
 #pragma once
 
 #include <vector>
-#include <Structs.hpp>
-#include <interfaces/ITargetProvider.hpp>
-#include <interfaces/IConfigLoader.hpp>
-#include <interfaces/IBallisticSolver.hpp>
+#include <Structs.h>
+#include <interfaces/ITargetProvider.h>
+#include <interfaces/IConfigLoader.h>
+#include <interfaces/IBallisticSolver.h>
 
 class MissionProcessor {
+
+    ITargetProvider*  provider;
+    IConfigLoader* loader;
+    IBallisticSolver* solver;
 
     inline float calculateBearing(const Coord& dronePos, const Coord& targetPos);
     float normalizeAngle(float& angle);

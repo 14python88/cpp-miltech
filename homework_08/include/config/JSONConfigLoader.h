@@ -1,6 +1,6 @@
 #pragma once
 
-#include <interfaces/IConfigLoader.hpp>
+#include <interfaces/IConfigLoader.h>
 
 class JSONConfigLoader : public IConfigLoader {
     std::string ammo_path;

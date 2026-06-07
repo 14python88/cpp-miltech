@@ -1,7 +1,7 @@
 #pragma once
 
-#include <interfaces/ITargetProvider.hpp>
-#include <Structs.hpp>
+#include <interfaces/ITargetProvider.h>
+#include <Structs.h>
 
 class JSONTargetProvider : public ITargetProvider {
     int target_count;

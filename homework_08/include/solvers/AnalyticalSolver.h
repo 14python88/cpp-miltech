@@ -1,7 +1,7 @@
 #pragma once
 
-#include <interfaces/IBallisticSolver.hpp>
-#include <Structs.hpp>
+#include <interfaces/IBallisticSolver.h>
+#include <Structs.h>
 
 class AnalyticalSolver : public IBallisticSolver {
     public:

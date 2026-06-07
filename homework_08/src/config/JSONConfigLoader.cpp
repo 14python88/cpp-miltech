@@ -1,4 +1,5 @@
-#include <interfaces/IConfigLoader.hpp>
+#include <interfaces/IConfigLoader.h>
+#include <JSONConfigLoader.h>
 
 #include <fstream>
 #include <iostream>
@@ -7,17 +8,12 @@
 using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;
 
-class JSONConfigLoader : public IConfigLoader {
-    std::string ammo_path;
-    std::string config_path;
-
-    public:
-        JSONConfigLoader(std::string config_path, std::string ammo_path) {
+        JSONConfigLoader::JSONConfigLoader(std::string config_path, std::string ammo_path) {
             this->ammo_path = ammo_path;
             this->config_path = config_path;
         };
 
-        DroneConfig getConfig() override {
+        DroneConfig JSONConfigLoader::getConfig() {
             std::ifstream config_json(this->config_path);
             json data = json::parse(config_json);
 
@@ -37,7 +33,7 @@ class JSONConfigLoader : public IConfigLoader {
             return droneConfig;
         };
 
-        Ammo getAmmo(const DroneConfig& config) override {
+        Ammo JSONConfigLoader::getAmmo(const DroneConfig& config) {
             std::ifstream ammo_json(this->ammo_path);
             json j_ammo = json::parse(ammo_json);
 
@@ -58,5 +54,3 @@ class JSONConfigLoader : public IConfigLoader {
             std::cout << "Unknown ammo type!" << '\n';
             exit(EXIT_FAILURE);
         };
-
-};

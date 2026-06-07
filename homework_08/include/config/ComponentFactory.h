@@ -1,8 +1,8 @@
 #pragma once
 
-#include <interfaces/ITargetProvider.hpp>
-#include <interfaces/IBallisticSolver.hpp>
-#include <interfaces/IConfigLoader.hpp>
+#include <interfaces/ITargetProvider.h>
+#include <interfaces/IBallisticSolver.h>
+#include <interfaces/IConfigLoader.h>
 
 enum class SourceType { JSON };
 enum class SolverType { ANALYTICAL };

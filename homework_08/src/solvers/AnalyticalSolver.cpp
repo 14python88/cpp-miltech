@@ -1,12 +1,11 @@
-#include <interfaces/IBallisticSolver.hpp>
+#include <interfaces/IBallisticSolver.h>
+#include <AnalyticalSolver.h>
 
 #include <iostream>
 
 #define USE_MATH_DEFINES
 
-class AnalyticalSolver : public IBallisticSolver {
-    public:
-        ResultConst solve(const DroneConfig config, const Ammo& ammo) override {
+        ResultConst AnalyticalSolver::solve(const DroneConfig config, const Ammo& ammo) {
             ResultConst solverResult;
             float a = ammo.drag *9.81* ammo.mass - 2 * ammo.drag * ammo.drag * ammo.lift * config.attack_speed;
             float b = (-3) *9.81* ammo.mass * ammo.mass + 3 * ammo.drag * ammo.lift * ammo.mass * config.attack_speed;
@@ -40,7 +39,7 @@ class AnalyticalSolver : public IBallisticSolver {
 
         };
 
-        Coord calculateBallistics(const float& acceleration_path, const Coord& dronePos, const Coord& targetPos, const float& h) override {
+        Coord AnalyticalSolver::calculateBallistics(const float& acceleration_path, const Coord& dronePos, const Coord& targetPos, const float& h) {
             Coord firePos;
             float D = sqrt(pow((targetPos.x - dronePos.x),2) + pow((targetPos.x - dronePos.y),2));
             if(D <= 0){
@@ -67,5 +66,3 @@ class AnalyticalSolver : public IBallisticSolver {
             }
             return firePos;
         }
-
-};

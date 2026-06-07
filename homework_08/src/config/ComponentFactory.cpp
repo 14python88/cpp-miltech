@@ -1,14 +1,12 @@
-#include <interfaces/ITargetProvider.hpp>
-#include <interfaces/IConfigLoader.hpp>
-#include <interfaces/IBallisticSolver.hpp>
+#include <interfaces/ITargetProvider.h>
+#include <interfaces/IConfigLoader.h>
+#include <interfaces/IBallisticSolver.h>
 
-#include <providers/JSONTargetProvider.hpp>
-#include <config/JSONConfigLoader.hpp>
-#include <solvers/AnalyticalSolver.hpp>
+#include <JSONTargetProvider.h>
+#include <JSONConfigLoader.h>
+#include <AnalyticalSolver.h>
 
-enum class SourceType { JSON };
-enum class SolverType { ANALYTICAL };
-enum class LoaderType { JSON };
+#include <ComponentFactory.h>
  
 ITargetProvider* createProvider(
     SourceType type, std::string path) {

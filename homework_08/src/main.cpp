@@ -1,7 +1,7 @@
 #include <json.hpp>
-#include <MissionProcessor.hpp>
-#include <Structs.hpp>
-#include <config/ComponentFactory.hpp>
+#include <MissionProcessor.h>
+#include <Structs.h>
+#include <config/ComponentFactory.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -41,7 +41,7 @@ int main(){
     auto* solver = createSolver(SolverType::ANALYTICAL);
 
     MissionProcessor mission(provider, loader, solver);
-    mission.init();
+    mission.MissionProcessor::init();
 
     std::vector<SimStep>  steps(10000);
     std::vector<Coord>    dropPos(mission.target_count);
@@ -59,7 +59,7 @@ int main(){
     int sim_step = 0;
     mission.state = STOPPED;
 
-    ResultConst resultConst = mission.solve(mission.config, mission.ammo);
+    ResultConst resultConst = mission.MissionProcessor::solve(mission.config, mission.ammo);
 
     // Preparing json output
     ofstream fout("homework_08/data/simulation.json");
@@ -84,35 +84,35 @@ int main(){
     // Main loop
     while (sim_step < 10000) {
 
-        mission.interpolateTargets(targetPosNow, sim_step, resultConst);
+        mission.MissionProcessor::interpolateTargets(targetPosNow, sim_step, resultConst);
         for (int j = 0; j < mission.target_count; ++j) {
-            dropPos[j] = mission.calculateBallistics(targetPosNow[j], resultConst.h);
-            params[j] = mission.calculateParameters(dropPos[j]);
+            dropPos[j] = mission.MissionProcessor::calculateBallistics(targetPosNow[j], resultConst.h);
+            params[j] = mission.MissionProcessor::calculateParameters(dropPos[j]);
 
             if (sim_step > 0) {
-                mission.extrapolateTargets(targetPosPredicted, targetPosNow, params);
-                dropPos[j] = mission.calculateBallistics(targetPosNow[j], resultConst.h);
-                params[j] = mission.calculateParameters(dropPos[j]);
+                mission.MissionProcessor::extrapolateTargets(targetPosPredicted, targetPosNow, params);
+                dropPos[j] = mission.MissionProcessor::calculateBallistics(targetPosNow[j], resultConst.h);
+                params[j] = mission.MissionProcessor::calculateParameters(dropPos[j]);
             }
         };
 
-        mission.updatePrefParams(params, targetPosPredicted, dropPos);
-        steps[sim_step] = mission.updateSteps();
+        mission.MissionProcessor::updatePrefParams(params, targetPosPredicted, dropPos);
+        steps[sim_step] = mission.MissionProcessor::updateSteps();
 
         // Updating drone position
-        mission.dronePosChange();
+        mission.MissionProcessor::dronePosChange();
 
-        DEBUG("Current time is " << current_time);
-        DEBUG("Number of simulation steps = " << sim_step + 1 << " Current drone coordinates are " << dronePosNow.x << ", " << dronePosNow.y);
-        DEBUG("Current drone direction is " << current_direction);
+        DEBUG("Current time is " << mission.current_time);
+        DEBUG("Number of simulation steps = " << sim_step + 1 << " Current drone coordinates are " << mission.dronePosNow.x << ", " << mission.dronePosNow.y);
+        DEBUG("Current drone direction is " << mission.current_direction);
         DEBUG("Preferred target bearing is: " << mission.prefParameters.bearing_pref);
-        DEBUG("Current drone speed is " << current_speed);
+        DEBUG("Current drone speed is " << mission.current_speed);
         DEBUG("Prefered drop point coordinates are: " << mission.prefParameters.dropPosPref.x << ", " << mission.prefParameters.dropPosPref.y);
         DEBUG("Preferred target index is " << mission.prefParameters.target_pref);
         DEBUG("Current distance to preferred drop point is " << mission.prefParameters.drop_dist_pref);
         DEBUG("Current distance to predicted target point is " << mission.prefParameters.dist_target_predicted);
 
-        mission.getDropParameters(resultConst.h);
+        mission.MissionProcessor::getDropParameters(resultConst.h);
 
         // Outputting simulation.json
         json step;
@@ -129,12 +129,15 @@ int main(){
         fout << out.dump(2);
         fout.flush();
 
-        mission.checkSuccess(sim_step, resultConst);
+        mission.MissionProcessor::checkSuccess(sim_step, resultConst);
         mission.current_time += mission.config.sim_time_step;
         sim_step += 1;
         };
     delete provider;
+    provider = nullptr;
     delete loader;
+    loader = nullptr;
     delete solver;
+    solver = nullptr;
     return 0;
 }

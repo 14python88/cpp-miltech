@@ -1,4 +1,5 @@
-#include <interfaces/ITargetProvider.hpp>
+#include <interfaces/ITargetProvider.h>
+#include <JSONTargetProvider.h>
 
 #include <fstream>
 #include <json.hpp>
@@ -6,14 +7,7 @@
 using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;
 
-class JSONTargetProvider : public ITargetProvider {
-    int target_count;
-    int time_steps;
-    std::string path;
-
-    public:
-        
-        JSONTargetProvider(std::string path) {
+        JSONTargetProvider::JSONTargetProvider(std::string path) {
             this->path = path;
             std::ifstream targets_json(path);
             json j_targets = json::parse(targets_json);
@@ -23,7 +17,7 @@ class JSONTargetProvider : public ITargetProvider {
             targets_json.close();
         };
 
-        std::vector<std::vector<Coord>> getTargetsCoord() override {
+        std::vector<std::vector<Coord>> JSONTargetProvider::getTargetsCoord() {
             std::vector<std::vector<Coord>> targets(target_count, std::vector<Coord>(time_steps));
             std::ifstream targets_json(this->path);
             json j_targets = json::parse(targets_json);
@@ -38,12 +32,10 @@ class JSONTargetProvider : public ITargetProvider {
             return targets;
         };
 
-        int getTargetCount() override {
+        int JSONTargetProvider::getTargetCount() {
             return this->target_count;
         };
 
-        int getTimeSteps() override {
+        int JSONTargetProvider::getTimeSteps() {
             return this->time_steps;
         };
-
-};
