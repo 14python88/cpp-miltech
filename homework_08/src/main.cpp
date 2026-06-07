@@ -1,7 +1,7 @@
-#include "../include/json.hpp"
-#include "../include/MissionProcessor.hpp"
-#include "../include/Structs.hpp"
-#include "../include/config/ComponentFactory.hpp"
+#include <json.hpp>
+#include <MissionProcessor.hpp>
+#include <Structs.hpp>
+#include <config/ComponentFactory.hpp>
 
 #include <cstdlib>
 #include <iostream>

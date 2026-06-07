@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Structs.hpp"
+#include <Structs.hpp>
 
 class IConfigLoader {
     std::string ammo_path;

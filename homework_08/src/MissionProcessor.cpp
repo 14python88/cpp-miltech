@@ -1,9 +1,9 @@
-#include "../include/interfaces/ITargetProvider.hpp"
-#include "../include/interfaces/IConfigLoader.hpp"
-#include "../include/interfaces/IBallisticSolver.hpp"
+#include <interfaces/ITargetProvider.hpp>
+#include <interfaces/IConfigLoader.hpp>
+#include <interfaces/IBallisticSolver.hpp>
 
-#include "../include/Structs.hpp"
-#include "../include/json.hpp"
+#include <Structs.hpp>
+#include <json.hpp>
 
 #include <cstdlib>
 #include <iostream>

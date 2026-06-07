@@ -1,7 +1,7 @@
-#include "../../include/interfaces/ITargetProvider.hpp"
+#include <interfaces/ITargetProvider.hpp>
 
 #include <fstream>
-#include "../../include/json.hpp"
+#include <json.hpp>
 
 using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;

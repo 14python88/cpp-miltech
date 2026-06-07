@@ -1,4 +1,4 @@
-#include "../../include/interfaces/IBallisticSolver.hpp"
+#include <interfaces/IBallisticSolver.hpp>
 
 #include <iostream>
 

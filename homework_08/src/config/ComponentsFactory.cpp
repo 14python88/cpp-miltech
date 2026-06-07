@@ -1,10 +1,10 @@
-#include "../../include/interfaces/ITargetProvider.hpp"
-#include "../../include/interfaces/IConfigLoader.hpp"
-#include "../../include/interfaces/IBallisticSolver.hpp"
+#include <interfaces/ITargetProvider.hpp>
+#include <interfaces/IConfigLoader.hpp>
+#include <interfaces/IBallisticSolver.hpp>
 
-#include "../../include/providers/JSONTargetProvider.hpp"
-#include "../../include/config/JSONConfigLoader.hpp"
-#include "../../include/solvers/AnalyticalSolver.hpp"
+#include <providers/JSONTargetProvider.hpp>
+#include <config/JSONConfigLoader.hpp>
+#include <solvers/AnalyticalSolver.hpp>
 
 enum class SourceType { JSON };
 enum class SolverType { ANALYTICAL };

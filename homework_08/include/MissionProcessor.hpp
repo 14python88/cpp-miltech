@@ -1,15 +1,15 @@
 #pragma once
 
 #include <vector>
-#include "Structs.hpp"
-#include "interfaces/ITargetProvider.hpp"
-#include "interfaces/IConfigLoader.hpp"
-#include "interfaces/IBallisticSolver.hpp"
+#include <Structs.hpp>
+#include <interfaces/ITargetProvider.hpp>
+#include <interfaces/IConfigLoader.hpp>
+#include <interfaces/IBallisticSolver.hpp>
 
 class MissionProcessor {
 
     inline float calculateBearing(const Coord& dronePos, const Coord& targetPos);
-    float normalizeAngle(float& angle) {};
+    float normalizeAngle(float& angle);
     float getDeltaAngle(const float& target, const float& current);
     float getTotalTime(const DroneConfig& config, const float& current_speed, const float& angle, const float& distance, const float& acceleration, const float& t_acceleration);
 

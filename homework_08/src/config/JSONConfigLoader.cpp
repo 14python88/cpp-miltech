@@ -1,8 +1,8 @@
-#include "../../include/interfaces/IConfigLoader.hpp"
+#include <interfaces/IConfigLoader.hpp>
 
 #include <fstream>
 #include <iostream>
-#include "../../include/json.hpp"
+#include <json.hpp>
 
 using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;

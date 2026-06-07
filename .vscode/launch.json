@@ -110,9 +110,9 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/debug/homework_08/ballistics_3_cli",
       "args": [
-        "${workspaceFolder}/homework_08/src/targets.json",
-        "${workspaceFolder}/homework_08/src/config.json",
-        "${workspaceFolder}/homework_08/src/ammo.json"
+        "${workspaceFolder}/homework_08/data/targets.json",
+        "${workspaceFolder}/homework_08/data/config.json",
+        "${workspaceFolder}/homework_08/data/ammo.json"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
