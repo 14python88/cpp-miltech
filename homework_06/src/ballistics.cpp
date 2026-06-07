@@ -12,8 +12,8 @@
 
 #define USE_MATH_DEFINES
 
-auto readInput(const char* path)
--> BallisticsInput {
+auto readInput(const char* path) -> BallisticsInput
+{
   std::ifstream file{path};
   if (!file) {
     std::cerr << "error: failed to open input file: " << path << '\n';
@@ -53,8 +53,8 @@ auto readInput(const char* path)
   return input;
 }
 
-auto getAmmoInput(const char* ammo_name)
--> AmmoInput {
+auto getAmmoInput(const char* ammo_name) -> AmmoInput
+{
   Ammo arsenal[5] = {{"VOG-17", 0.35f, 0.07f, 0.0f},
                      {"M67", 0.6f, 0.10f, 0.0f},
                      {"RKG-3", 1.2f, 0.10f, 0.0f},
@@ -85,17 +85,17 @@ auto getAmmoInput(const char* ammo_name)
   return ammo_input;
 }
 
-auto calculateBallistics (const float& mass,
-                          const float& drag,
-                          const float& lift,
-                          const float& zd,
-                          const float& attack_speed,
-                          const float& xd,
-                          const float& yd,
-                          const float& target_x,
-                          const float& target_y,
-                          const float& acceleration_path)
--> Coord {
+auto calculateBallistics(const float& mass,
+                         const float& drag,
+                         const float& lift,
+                         const float& zd,
+                         const float& attack_speed,
+                         const float& xd,
+                         const float& yd,
+                         const float& target_x,
+                         const float& target_y,
+                         const float& acceleration_path) -> Coord
+{
   float pi = M_PI, g = 9.81;
 
   float a = drag * g * mass - 2 * drag * drag * lift * attack_speed;
@@ -150,8 +150,8 @@ auto calculateBallistics (const float& mass,
   return fire_coords;
 }
 
-auto printResult(const float& fire_x, const float& fire_y)
--> int {
+auto printResult(const float& fire_x, const float& fire_y) -> int
+{
   std::cout << "Bomb drop coordinates are: x = " << fire_x << ", y = " << fire_y << '\n';
   return 0;
 }
