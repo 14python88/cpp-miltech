@@ -9,5 +9,5 @@ class IConfigLoader {
     public:
         virtual DroneConfig getConfig() = 0;
         virtual Ammo getAmmo(const DroneConfig& config) = 0;
-        virtual ~IConfigLoader() {};
+        virtual ~IConfigLoader() = default;
 };
