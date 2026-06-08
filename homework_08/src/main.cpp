@@ -45,7 +45,7 @@ int main(){
 
     std::vector<SimStep>  steps(10000);
     std::vector<Coord>    dropPos(mission.target_count);
-    std::vector<Coord>    targetPosPredicted(mission.target_count, {0.0f, 0.0f});
+    std::vector<Coord>    targetPosPredicted(mission.target_count);
     std::vector<Coord>    targetPosNow(mission.target_count);
     std::vector<Params>   params(mission.target_count);
 
@@ -69,7 +69,7 @@ int main(){
 
     LOG("Config loaded: ");
     LOG("altitude = " << mission.config.altitude);
-    LOG("initial preferred_direction = " << mission.config.initial_dir);
+    LOG("initial direction = " << mission.config.initial_dir);
     LOG("attack speed = " << mission.config.attack_speed);
     LOG("acceleration path = " << mission.config.acceleration_path);
     LOG("angular speed = " << mission.config.angular_speed);
@@ -88,15 +88,17 @@ int main(){
         for (int j = 0; j < mission.target_count; ++j) {
             dropPos[j] = mission.MissionProcessor::calculateBallistics(targetPosNow[j], resultConst.h);
             params[j] = mission.MissionProcessor::calculateParameters(dropPos[j]);
-
+        };
             if (sim_step > 0) {
                 mission.MissionProcessor::extrapolateTargets(targetPosPredicted, targetPosNow, params);
-                dropPos[j] = mission.MissionProcessor::calculateBallistics(targetPosNow[j], resultConst.h);
-                params[j] = mission.MissionProcessor::calculateParameters(dropPos[j]);
-            }
+                for (int j = 0; j < mission.target_count; ++j) {
+                  dropPos[j] = mission.MissionProcessor::calculateBallistics(targetPosNow[j], resultConst.h);
+                  params[j] = mission.MissionProcessor::calculateParameters(dropPos[j]);
+            };
         };
 
         mission.MissionProcessor::updatePrefParams(params, targetPosPredicted, dropPos);
+
         steps[sim_step] = mission.MissionProcessor::updateSteps();
 
         // Updating drone position

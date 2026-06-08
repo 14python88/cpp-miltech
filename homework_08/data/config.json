@@ -9,7 +9,7 @@
     "attackSpeed": 10,
     "accelerationPath": 8,
     "angularSpeed": 2,
-    "turnThreshold": 0.1
+    "turnThreshold": 0.3
   },
   "ammo": "VOG-17",
   "simulation": {

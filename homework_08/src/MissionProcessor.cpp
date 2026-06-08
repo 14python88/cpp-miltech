@@ -17,7 +17,7 @@
 #define USE_MATH_DEFINES
 
 #define ENABLE_LOG	1
-#define ENABLE_DEBUG  0
+#define ENABLE_DEBUG  1
  
 #if ENABLE_LOG
   #define LOG(msg) std::cout << "[LOG] " << msg << std::endl
@@ -194,11 +194,11 @@ using namespace std;
             this->current_speed = this->config.attack_speed;
             this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
             this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        } else if((fabs(this->prefParameters.delta_angle_pref) <= config.turn_threshold) && (0 < current_speed) && (current_speed < config.attack_speed)){
+        } else if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && (0 < this->current_speed) && (this->current_speed < this->config.attack_speed)){
             this->state = ACCELERATING;
             this->current_direction = this->prefParameters.bearing_pref;
-            this->current_speed = this->current_speed + this->acceleration * this->config.sim_time_step;
-            this->current_speed = min(this->current_speed, config.attack_speed);
+            this->current_speed += this->acceleration * this->config.sim_time_step;
+            this->current_speed = min(this->current_speed, this->config.attack_speed);
             this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
             this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
         } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && this->current_speed == 0.0){
@@ -210,13 +210,13 @@ using namespace std;
             }
         } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (this->current_speed == this->config.attack_speed) && (this->current_speed != 0.0)){
             this->state = DECELERATING;
-            this->current_speed = this->current_speed - this->acceleration * this->config.sim_time_step;
+            this->current_speed -= this->acceleration * this->config.sim_time_step;
             this->current_speed = max(0.0f, this->current_speed);
             this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
             this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (0 < this->current_speed) && (this->current_speed < this->config.attack_speed)){
+        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (this->current_speed > 0.0f) && (this->current_speed < this->config.attack_speed)){
             this->state = DECELERATING;
-            this->current_speed = this->current_speed - this->acceleration * this->config.sim_time_step;
+            this->current_speed -= this->acceleration * this->config.sim_time_step;
             this->current_speed = max(0.0f, this->current_speed);
             this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
             this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
