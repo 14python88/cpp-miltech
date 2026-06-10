@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cctype>
 #include <cfloat>
+#include <memory>
 
 #define USE_MATH_DEFINES
 
@@ -29,9 +30,9 @@ using ordered_json = nlohmann::ordered_json;
 using json = nlohmann::json;
 using namespace std;
 
-    ITargetProvider*  provider;
-    IConfigLoader* loader;
-    IBallisticSolver* solver;
+    std::unique_ptr<ITargetProvider> provider;
+    std::unique_ptr<IConfigLoader> loader;
+    std::unique_ptr<IBallisticSolver> solver;
 
     inline float MissionProcessor::calculateBearing(const Coord& dronePos, const Coord& targetPos) {
         float bearing = atan2(targetPos.y - dronePos.y, targetPos.x - dronePos.x);
@@ -71,7 +72,7 @@ using namespace std;
         return total_time;
     };
 
-    MissionProcessor::MissionProcessor(ITargetProvider* t, IConfigLoader* l, IBallisticSolver* s) : provider(t), loader(l), solver(s) {};
+    MissionProcessor::MissionProcessor(std::unique_ptr<ITargetProvider> t, std::unique_ptr<IConfigLoader> l, std::unique_ptr<IBallisticSolver> s) : provider(std::move(t)), loader(std::move(l)), solver(std::move(s)) {};
 
     void MissionProcessor::init() {
         this->config = loader->getConfig();
@@ -247,4 +248,4 @@ using namespace std;
         }
     };
 
-    void MissionProcessor::changeSolver(IBallisticSolver* s) { solver = s; }
+    void MissionProcessor::changeSolver(std::unique_ptr<IBallisticSolver> s) { solver = std::move(s); }

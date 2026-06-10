@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include <Structs.h>
 #include <interfaces/ITargetProvider.h>
 #include <interfaces/IConfigLoader.h>
@@ -8,9 +9,9 @@
 
 class MissionProcessor {
 
-    ITargetProvider*  provider;
-    IConfigLoader* loader;
-    IBallisticSolver* solver;
+    std::unique_ptr<ITargetProvider>  provider;
+    std::unique_ptr<IConfigLoader> loader;
+    std::unique_ptr<IBallisticSolver> solver;
 
     inline float calculateBearing(const Coord& dronePos, const Coord& targetPos);
     float normalizeAngle(float& angle);
@@ -36,7 +37,8 @@ public:
     Coord dronePosNow;
 
 
-    MissionProcessor(ITargetProvider* t, IConfigLoader* l, IBallisticSolver* s);
+    MissionProcessor(std::unique_ptr<ITargetProvider> t, std::unique_ptr<IConfigLoader> l, std::unique_ptr<IBallisticSolver> s);
+    
     void init();
     ResultConst solve(const DroneConfig droneConfig, const Ammo& ammo);
     Coord calculateBallistics(const Coord& targetPos, const float& h);
@@ -60,5 +62,5 @@ public:
     void dronePosChange();
     void getDropParameters(const float& h);
     void checkSuccess(const int& sim_step, const ResultConst& resultConst);
-    void changeSolver(IBallisticSolver* s);
+    void changeSolver(std::unique_ptr<IBallisticSolver> s);
 };

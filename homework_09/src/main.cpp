@@ -10,7 +10,6 @@
 #include <cstring>
 #include <cctype>
 #include <vector>
-
 #include <cfloat>
 
 #define USE_MATH_DEFINES
@@ -36,11 +35,15 @@ using namespace std;
 
 int main(){
 
-    auto* provider = createProvider(SourceType::JSON, "homework_08/data/targets.json");
-    auto* loader = createLoader(LoaderType::JSON, "homework_08/data/config.json", "homework_08/data/ammo.json");
-    auto* solver = createSolver(SolverType::ANALYTICAL);
+    // std::unique_ptr<ITargetProvider> provider = createProvider(SourceType::JSON, "homework_08/data/targets.json");
+    // std::unique_ptr<IConfigLoader> loader = createLoader(LoaderType::JSON, "homework_08/data/config.json", "homework_08/data/ammo.json");
+    // std::unique_ptr<IBallisticSolver> solver = createSolver(SolverType::ANALYTICAL);
 
-    MissionProcessor mission(provider, loader, solver);
+    MissionProcessor mission(
+      createProvider(SourceType::JSON, "homework_09/data/targets.json"),
+      createLoader(LoaderType::JSON, "homework_09/data/config.json", "homework_09/data/ammo.json"),
+      createSolver(SolverType::ANALYTICAL)
+    );
     mission.MissionProcessor::init();
 
     std::vector<SimStep>  steps(10000);
@@ -62,7 +65,7 @@ int main(){
     ResultConst resultConst = mission.MissionProcessor::solve(mission.config, mission.ammo);
 
     // Preparing json output
-    ofstream fout("homework_08/data/simulation.json");
+    ofstream fout("homework_09/data/simulation.json");
     json out;
     out["totalSteps"] = 0;
     out["steps"] = json::array();
@@ -135,11 +138,11 @@ int main(){
         mission.current_time += mission.config.sim_time_step;
         sim_step += 1;
         };
-    delete provider;
-    provider = nullptr;
-    delete loader;
-    loader = nullptr;
-    delete solver;
-    solver = nullptr;
+    // delete provider;
+    // provider = nullptr;
+    // delete loader;
+    // loader = nullptr;
+    // delete solver;
+    // solver = nullptr;
     return 0;
 }

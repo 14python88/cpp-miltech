@@ -7,30 +7,33 @@
 #include <AnalyticalSolver.h>
 
 #include <ComponentFactory.h>
+#include <memory>
  
-ITargetProvider* createProvider(
+std::unique_ptr<ITargetProvider> createProvider(
     SourceType type, std::string path) {
     switch (type) {
-    case SourceType::JSON:
-        return new JSONTargetProvider(path);
-    default: return nullptr;
+        case SourceType::JSON:
+            return std::make_unique<JSONTargetProvider>(path);
+        default: return nullptr;
     }
 };
 
-IBallisticSolver* createSolver(
+std::unique_ptr<IBallisticSolver> createSolver(
     SolverType type) {
     switch (type) {
-    case SolverType::ANALYTICAL:
-        return new AnalyticalSolver;
-    default: return nullptr;
+        case SolverType::ANALYTICAL:
+            return std::make_unique<AnalyticalSolver>();
+        // case SolverType::TABLE:
+        //     return std::make_unique<TableSolver>();
+        default: return nullptr;
     }
 };
 
-IConfigLoader* createLoader(
+std::unique_ptr<IConfigLoader> createLoader(
     LoaderType type, std::string config_path, std::string ammo_path) {
     switch (type) {
         case LoaderType::JSON:
-            return new JSONConfigLoader(config_path, ammo_path);
+            return std::make_unique<JSONConfigLoader>(config_path, ammo_path);
         default: return nullptr;
     }
 };
