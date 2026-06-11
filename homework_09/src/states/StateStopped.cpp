@@ -21,11 +21,6 @@
             ctx.dronePosNow.y += ctx.current_speed * ctx.config.sim_time_step * sin(ctx.current_direction);
             return std::make_unique<StateAccelerating>();
         }else if(angle_large && speed_zero){
-            if(prefParams.delta_angle_pref < 0){
-                ctx.current_direction -= ctx.config.angular_speed * ctx.config.sim_time_step;
-            }else if(prefParams.delta_angle_pref > 0){
-                ctx.current_direction += ctx.config.angular_speed * ctx.config.sim_time_step;
-            };
             return std::make_unique<StateTurning>();
         };
     };

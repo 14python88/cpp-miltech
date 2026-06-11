@@ -12,14 +12,14 @@
 
     std::unique_ptr<IDroneState> StateMoving::execute(DroneContext& ctx, PrefParameters& prefParams) {
         bool angle_small = fabs(prefParams.delta_angle_pref) <= ctx.config.turn_threshold;
-        bool speed_max = ctx.current_speed >= ctx.config.attack_speed;
+        // bool speed_max = ctx.current_speed >= ctx.config.attack_speed;
 
         ctx.current_direction = prefParams.bearing_pref;
         ctx.current_speed = ctx.config.attack_speed;
         ctx.dronePosNow.x += ctx.current_speed * ctx.config.sim_time_step * cos(ctx.current_direction);
         ctx.dronePosNow.y += ctx.current_speed * ctx.config.sim_time_step * sin(ctx.current_direction);
 
-        if(angle_small && speed_max){
+        if(angle_small){
             return nullptr;
         };
         return std::make_unique<StateDecelerating>();

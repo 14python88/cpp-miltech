@@ -99,6 +99,9 @@ int main(){
         logger.outputLog(sim_step, steps, mission.prefParameters.dropPosPref, mission.bombLand, mission.prefParameters.targetPredictedPos);
 
         mission.MissionProcessor::checkSuccess(sim_step, resultConst);
+
+        mission.ctx.current_time += mission.ctx.config.sim_time_step;
+        sim_step += 1;
         };
     return 0;
 }

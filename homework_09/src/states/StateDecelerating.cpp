@@ -13,6 +13,7 @@
         bool angle_large = fabs(prefParams.delta_angle_pref) > ctx.config.turn_threshold;
         bool speed_max = ctx.current_speed >= ctx.config.attack_speed;\
         bool speed_between = ctx.current_speed > 0.0f && ctx.current_speed < ctx.config.attack_speed;
+        bool angle_small = fabs(prefParams.delta_angle_pref) <= ctx.config.turn_threshold;
 
         ctx.current_speed -= ctx.acceleration * ctx.config.sim_time_step;
         ctx.current_speed = std::max(0.0f, ctx.current_speed);
@@ -23,6 +24,8 @@
             return nullptr;
         }else if(angle_large && speed_between){
             return nullptr;
+        }else if(angle_small && speed_between){
+            return std::make_unique<StateAccelerating>();
         };
         return std::make_unique<StateStopped>();
     };

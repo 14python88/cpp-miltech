@@ -76,32 +76,31 @@ using namespace std;
     MissionProcessor::MissionProcessor(std::unique_ptr<ITargetProvider> t, std::unique_ptr<IConfigLoader> l, std::unique_ptr<IBallisticSolver> s) : provider(std::move(t)), loader(std::move(l)), solver(std::move(s)) {};
 
     void MissionProcessor::init() {
-        this->config = loader->getConfig();
-        this->ammo = loader->getAmmo(this->config);
+        // this->config = loader->getConfig();
+        this->ctx.config = loader->getConfig();
+        this->ctx.current_direction = this->ctx.config.initial_dir;
+        this->ctx.current_speed = 0.0f;
+        this->ctx.dronePosNow = this->ctx.config.startPos;
+        this->ctx.current_time = 0.0f;
+        this->ctx.acceleration = this->ctx.config.attack_speed * this->ctx.config.attack_speed / (2 * this->ctx.config.acceleration_path);
+        this->ctx.t_acceleration = (2 * this->ctx.config.acceleration_path) / this->ctx.config.attack_speed;
+
+        this->ammo = loader->getAmmo(this->ctx.config);
         this->targets = provider->getTargetsCoord();
         this->target_count = provider->getTargetCount();
         this->time_steps = provider->getTimeSteps();
         state = std::make_unique<StateStopped>();
 
-        this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
-        this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
-        this->current_direction = this->config.initial_dir;
-        this->current_time = 0.0f;
-        this->current_speed = 0.0f;
-        this->dronePosNow = this->config.startPos;
+        // this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
+        // this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
+        // this->current_direction = this->config.initial_dir;
+        // this->current_time = 0.0f;
+        // this->current_speed = 0.0f;
+        // this->dronePosNow = this->config.startPos;
 
-        this->ctx = {
-            this->current_direction,
-            this->current_speed,
-            this->current_time,
-            this->acceleration,
-            this->t_acceleration,
-            this->dronePosNow,
-            this->config
-        };
     };
 
-    ResultConst MissionProcessor::solve(const DroneConfig droneConfig, const Ammo& ammo) {
+    ResultConst MissionProcessor::solve(const DroneConfig& droneConfig, const Ammo& ammo) {
         return solver->solve(droneConfig, ammo);
     };
     
@@ -229,8 +228,7 @@ using namespace std;
 
             exit(EXIT_SUCCESS);
         }
-        this->current_time += this->ctx.config.sim_time_step;
-        sim_step += 1;
+
     };
 
     void MissionProcessor::changeSolver(std::unique_ptr<IBallisticSolver> s) { solver = std::move(s); }

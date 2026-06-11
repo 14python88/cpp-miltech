@@ -41,7 +41,7 @@ public:
     MissionProcessor(std::unique_ptr<ITargetProvider> t, std::unique_ptr<IConfigLoader> l, std::unique_ptr<IBallisticSolver> s);
     
     void init();
-    ResultConst solve(const DroneConfig droneConfig, const Ammo& ammo);
+    ResultConst solve(const DroneConfig& droneConfig, const Ammo& ammo);
     Coord calculateBallistics(const Coord& targetPos, const float& h);
     Params calculateParameters(const Coord& dropPos);
     void interpolateTargets(
