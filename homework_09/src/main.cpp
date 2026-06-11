@@ -21,15 +21,27 @@ int main(){
   cout << "Enter path for targets file: " << '\n';
   std::string targets_path;
   cin >> targets_path;
+  if(targets_path.empty()){
+    targets_path = "targets.json";
+  };
   cout << "Enter path for config file: " << '\n';
   std::string config_path;
   cin >> config_path;
+  if(config_path.empty()){
+    config_path = "config.json";
+  };
   cout << "Enter path for ammo file: " << '\n';
   std::string ammo_path;
   cin >> ammo_path;
+  if(ammo_path.empty()){
+    ammo_path = "ammo.json";
+  };
   cout << "Enter path for output: " << '\n';
   std::string output_path;
   cin >> output_path;
+  if(output_path.empty()){
+    output_path = "simulation.json";
+  };
 
     MissionProcessor mission(
       createProvider(SourceType::JSON, targets_path),
@@ -43,6 +55,7 @@ int main(){
     std::vector<Coord>    targetPosPredicted(mission.target_count);
     std::vector<Coord>    targetPosNow(mission.target_count);
     std::vector<Params>   params(mission.target_count);
+    DroneContext ctx;
 
     int sim_step = 0;
 
@@ -71,7 +84,21 @@ int main(){
 
         steps[sim_step] = mission.MissionProcessor::updateSteps();
 
-        mission.MissionProcessor::dronePosChange();
+        mission.ctx = {
+            mission.current_direction,
+            mission.current_speed,
+            mission.current_time,
+            mission.acceleration,
+            mission.dronePosNow,
+            mission.config
+        };
+
+        // mission.MissionProcessor::dronePosChange(ctx);
+
+        auto next = mission.state->execute(mission.ctx, mission.prefParameters);
+        if (next){
+            mission.state = std::move(next);
+        };
 
         logger.debugLog();
 
@@ -82,10 +109,6 @@ int main(){
         logger.outputLog(sim_step, steps, mission.prefParameters.dropPosPref, mission.bombLand, mission.prefParameters.targetPredictedPos);
 
         mission.MissionProcessor::checkSuccess(sim_step, resultConst);
-
-        mission.current_time += mission.config.sim_time_step;
-        sim_step += 1;
-        
         };
     return 0;
 }

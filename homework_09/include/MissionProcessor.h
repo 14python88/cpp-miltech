@@ -6,6 +6,7 @@
 #include <interfaces/ITargetProvider.h>
 #include <interfaces/IConfigLoader.h>
 #include <interfaces/IBallisticSolver.h>
+#include <interfaces/IDroneState.h>
 
 class MissionProcessor {
 
@@ -25,8 +26,8 @@ public:
     DroneConfig config;
     Ammo ammo;
     std::vector<std::vector<Coord>> targets;
-    DroneState state;
     PrefParameters prefParameters;
+    std::unique_ptr<IDroneState> state;
     float delta_target_bomb;
     float current_direction;
     float current_speed;
@@ -35,7 +36,7 @@ public:
     float t_acceleration;
     Coord bombLand;
     Coord dronePosNow;
-
+    DroneContext ctx;
 
     MissionProcessor(std::unique_ptr<ITargetProvider> t, std::unique_ptr<IConfigLoader> l, std::unique_ptr<IBallisticSolver> s);
     
@@ -59,8 +60,8 @@ public:
         const std::vector<Coord>& dropPos
         );
     SimStep updateSteps ();
-    void dronePosChange();
+    void dronePosChange(DroneContext& ctx);
     void getDropParameters(const float& h);
-    void checkSuccess(const int& sim_step, const ResultConst& resultConst);
+    void checkSuccess(int& sim_step, const ResultConst& resultConst);
     void changeSolver(std::unique_ptr<IBallisticSolver> s);
 };

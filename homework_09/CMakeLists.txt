@@ -12,8 +12,13 @@ add_library(ballistics_4 STATIC
     src/config/ComponentFactory.cpp 
     src/solvers/AnalyticalSolver.cpp 
     src/Logger.cpp
+    src/states/StateStopped.cpp
+    src/states/StateTurning.cpp
+    src/states/StateAccelerating.cpp
+    src/states/StateMoving.cpp
+    src/states/StateDecelerating.cpp
 )
-target_include_directories(ballistics_4 PUBLIC include include/providers include/config include/solvers)
+target_include_directories(ballistics_4 PUBLIC include include/providers include/config include/solvers include/states)
 
 add_executable(ballistics_4_cli src/main.cpp)
 target_link_libraries(ballistics_4_cli PRIVATE ballistics_4)

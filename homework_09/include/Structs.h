@@ -4,13 +4,13 @@
 #include <vector>
 #include <string>
 
-enum DroneState{
-    STOPPED,
-    ACCELERATING,
-    DECELERATING,
-    TURNING,
-    MOVING
-};
+// enum DroneState{
+//     STOPPED,
+//     ACCELERATING,
+//     DECELERATING,
+//     TURNING,
+//     MOVING
+// };
 
 struct Coord{
     float x;
@@ -85,6 +85,15 @@ struct Params {
     float total_time;
 };
 
+struct DroneContext {
+    float current_direction;
+    float current_speed;
+    float current_time;
+    float acceleration;
+    Coord dronePosNow;
+    DroneConfig config;
+};
+
 struct PrefParameters {
     float total_time_pref;
     int target_pref;
@@ -99,7 +108,7 @@ struct PrefParameters {
 struct SimStep {
     Coord pos;
     float direction;
-    int state;
+    std::string state;
     int target_idx;
 };
 

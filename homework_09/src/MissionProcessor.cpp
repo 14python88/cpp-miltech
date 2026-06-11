@@ -1,6 +1,8 @@
 #include <interfaces/ITargetProvider.h>
 #include <interfaces/IConfigLoader.h>
 #include <interfaces/IBallisticSolver.h>
+#include <states/DroneStates.h>
+#include <interfaces/IDroneState.h>
 #include <MissionProcessor.h>
 
 #include <Structs.h>
@@ -79,6 +81,7 @@ using namespace std;
         this->targets = provider->getTargetsCoord();
         this->target_count = provider->getTargetCount();
         this->time_steps = provider->getTimeSteps();
+        state = std::make_unique<StateStopped>();
 
         this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
         this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
@@ -86,7 +89,15 @@ using namespace std;
         this->current_time = 0.0f;
         this->current_speed = 0.0f;
         this->dronePosNow = this->config.startPos;
-        this->state = STOPPED;
+
+        this->ctx = {
+            this->current_direction,
+            this->current_speed,
+            this->current_time,
+            this->acceleration,
+            this->dronePosNow,
+            this->config
+        };
     };
 
     ResultConst MissionProcessor::solve(const DroneConfig droneConfig, const Ammo& ammo) {
@@ -182,53 +193,17 @@ using namespace std;
         SimStep steps = {
             this->dronePosNow,
             this->current_direction,
-            this->state,
+            this->state->name(),
             this->prefParameters.target_pref
         };
         return steps;
     };
 
-    void MissionProcessor::dronePosChange(){
-        if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && this->current_speed == 0.0){
-            this->state = ACCELERATING;
-            this->current_direction = this->prefParameters.bearing_pref;
-            this->current_speed += this->acceleration * this->config.sim_time_step;
-            this->current_speed = min(this->current_speed, this->config.attack_speed);
-            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
-            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        } else if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && (this->current_speed == this->config.attack_speed) && (this->current_speed != 0.0)){
-            this->state = MOVING;
-            this->current_direction = this->prefParameters.bearing_pref;
-            this->current_speed = this->config.attack_speed;
-            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
-            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        } else if((fabs(this->prefParameters.delta_angle_pref) <= this->config.turn_threshold) && (0 < this->current_speed) && (this->current_speed < this->config.attack_speed)){
-            this->state = ACCELERATING;
-            this->current_direction = this->prefParameters.bearing_pref;
-            this->current_speed += this->acceleration * this->config.sim_time_step;
-            this->current_speed = min(this->current_speed, this->config.attack_speed);
-            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
-            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && this->current_speed == 0.0){
-            this->state = TURNING;
-            if(this->prefParameters.delta_angle_pref < 0){
-                this->current_direction -= this->config.angular_speed * this->config.sim_time_step;
-            } else if(this->prefParameters.delta_angle_pref > 0){
-                this->current_direction += this->config.angular_speed * this->config.sim_time_step;
-            }
-        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (this->current_speed == this->config.attack_speed) && (this->current_speed != 0.0)){
-            this->state = DECELERATING;
-            this->current_speed -= this->acceleration * this->config.sim_time_step;
-            this->current_speed = max(0.0f, this->current_speed);
-            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
-            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        } else if((fabs(this->prefParameters.delta_angle_pref) > this->config.turn_threshold) && (this->current_speed > 0.0f) && (this->current_speed < this->config.attack_speed)){
-            this->state = DECELERATING;
-            this->current_speed -= this->acceleration * this->config.sim_time_step;
-            this->current_speed = max(0.0f, this->current_speed);
-            this->dronePosNow.x += this->current_speed * this->config.sim_time_step * cos(this->current_direction);
-            this->dronePosNow.y += this->current_speed * this->config.sim_time_step * sin(this->current_direction);
-        }
+    void MissionProcessor::dronePosChange(DroneContext& ctx){
+        auto next = state->execute(ctx, this->prefParameters);
+        if (next){
+            state = std::move(next);
+        };
     };
 
     void MissionProcessor::getDropParameters(const float& h) {
@@ -239,7 +214,7 @@ using namespace std;
         this->delta_target_bomb = sqrt(pow((this->bombLand.x - this->prefParameters.targetPredictedPos.x),2) + pow((this->bombLand.y - this->prefParameters.targetPredictedPos.y),2));
     };
 
-    void MissionProcessor::checkSuccess(const int& sim_step, const ResultConst& resultConst) {
+    void MissionProcessor::checkSuccess(int& sim_step, const ResultConst& resultConst) {
         if ((fabs(this->current_direction - this->prefParameters.bearing_pref) < 1e-3) && (this->current_speed == config.attack_speed) &&
             (this->prefParameters.drop_dist_pref <= this->config.hit_radius) && (this->prefParameters.dist_target_predicted <= resultConst.h + this->config.hit_radius) &&
             (this->delta_target_bomb <= this->config.hit_radius)) {
@@ -253,6 +228,8 @@ using namespace std;
 
             exit(EXIT_SUCCESS);
         }
+        this->current_time += this->config.sim_time_step;
+        sim_step += 1;
     };
 
     void MissionProcessor::changeSolver(std::unique_ptr<IBallisticSolver> s) { solver = std::move(s); }
