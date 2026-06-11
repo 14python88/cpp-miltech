@@ -32,12 +32,5 @@ core.*
 .DS_Store
 Thumbs.db
 
-# Previous homeworks
-homework_04/
-homework_05/
-homework_06/
-homework_07/
-homework_08/
-
-# Cash
-.cache/
+#Кеш
+.cache/clangd/index
