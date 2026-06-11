@@ -200,12 +200,12 @@ using namespace std;
         return steps;
     };
 
-    void MissionProcessor::dronePosChange(DroneContext& ctx){
-        auto next = state->execute(ctx, this->prefParameters);
-        if (next){
-            state = std::move(next);
-        };
-    };
+    // void MissionProcessor::dronePosChange(DroneContext& ctx){
+    //     auto next = state->execute(ctx, this->prefParameters);
+    //     if (next){
+    //         state = std::move(next);
+    //     };
+    // };
 
     void MissionProcessor::getDropParameters(const float& h) {
         this->bombLand = {

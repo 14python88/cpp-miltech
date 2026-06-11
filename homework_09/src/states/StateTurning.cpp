@@ -13,10 +13,10 @@
         bool angle_large = fabs(prefParams.delta_angle_pref) > ctx.config.turn_threshold;
         bool speed_zero = ctx.current_speed == 0.0f;
 
-        if(prefParams.delta_angle_pref < 0){
+        if(angle_large && speed_zero && prefParams.delta_angle_pref < 0){
             ctx.current_direction -= ctx.config.angular_speed * ctx.config.sim_time_step;
             return nullptr;
-        }else if(prefParams.delta_angle_pref > 0){
+        }else if(angle_large && speed_zero && prefParams.delta_angle_pref > 0){
             ctx.current_direction += ctx.config.angular_speed * ctx.config.sim_time_step;
             return nullptr;
         };

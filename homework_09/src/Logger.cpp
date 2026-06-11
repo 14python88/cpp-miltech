@@ -16,7 +16,7 @@ using json = nlohmann::json;
 using namespace std;
 
     #define ENABLE_LOG	1
-    #define ENABLE_DEBUG  0
+    #define ENABLE_DEBUG  1
     
     #if ENABLE_LOG
     #define LOG(msg) std::cout << "[LOG] " << msg << std::endl
@@ -62,12 +62,12 @@ using namespace std;
         LOG("ammo flight distance = " << this->resultConst.h);
     };
 
-    void Logger::debugLog () {
-        DEBUG("Current time is " << mission.current_time);
-        DEBUG("Number of simulation steps = " << sim_step + 1 << " Current drone coordinates are " << mission.dronePosNow.x << ", " << mission.dronePosNow.y);
-        DEBUG("Current drone direction is " << mission.current_direction);
+    void Logger::debugLog (const MissionProcessor& mission, const int& sim_step) {
+        DEBUG("Current time is " << mission.ctx.current_time);
+        DEBUG("Number of simulation steps = " << sim_step + 1 << " Current drone coordinates are " << mission.ctx.dronePosNow.x << ", " << mission.ctx.dronePosNow.y);
+        DEBUG("Current drone direction is " << mission.ctx.current_direction);
         DEBUG("Preferred target bearing is: " << mission.prefParameters.bearing_pref);
-        DEBUG("Current drone speed is " << mission.current_speed);
+        DEBUG("Current drone speed is " << mission.ctx.current_speed);
         DEBUG("Prefered drop point coordinates are: " << mission.prefParameters.dropPosPref.x << ", " << mission.prefParameters.dropPosPref.y);
         DEBUG("Preferred target index is " << mission.prefParameters.target_pref);
         DEBUG("Current distance to preferred drop point is " << mission.prefParameters.drop_dist_pref);

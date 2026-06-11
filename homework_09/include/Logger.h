@@ -2,6 +2,7 @@
 
 #include <Structs.h>
 #include <json.hpp>
+#include <MissionProcessor.h>
 
 #include <fstream>
 
@@ -19,6 +20,6 @@ public:
 
     Logger(const std::string& output_path, const DroneConfig& c, const Ammo& a, const ResultConst& TH);
     void configLog();
-    void debugLog ();
+    void debugLog (const MissionProcessor& mission, const int& sim_step);
     void outputLog(const float& sim_step, const std::vector<SimStep>& steps, const Coord& dropPosPref, const Coord& bombLand, const Coord& targetPredictedPos);
 };

@@ -90,7 +90,7 @@ int main(){
             mission.state = std::move(next);
         };
 
-        logger.debugLog();
+        logger.debugLog(mission, sim_step);
 
         mission.MissionProcessor::getDropParameters(resultConst.h);
 
