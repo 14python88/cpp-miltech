@@ -14,33 +14,51 @@
 
 #define USE_MATH_DEFINES
 
+#define USE_DEFAULT_PATHS 0
+#if USE_DEFAULT_PATHS
+  std::string targets_path = "targets.json";
+  std::string config_path = "config.json";
+  std::string ammo_path = "ammo.json";
+  std::string output_path = "simulation.json";
+#else
+  std::string targets_path;
+  std::string config_path;
+  std::string ammo_path;
+  std::string output_path;
+#endif
+
 using namespace std;
 
 int main(){
 
+
+
   cout << "Enter path for targets file: " << '\n';
-  std::string targets_path;
   cin >> targets_path;
-  if(targets_path.empty()){
-    targets_path = "targets.json";
-  };
+    if(targets_path.empty()){
+        cout << "Targets path empty!" << '\n';
+        return 1;
+    };
+
   cout << "Enter path for config file: " << '\n';
-  std::string config_path;
   cin >> config_path;
   if(config_path.empty()){
-    config_path = "config.json";
+    cout << "Config path empty!" << '\n';
+    return 1;
   };
+
   cout << "Enter path for ammo file: " << '\n';
-  std::string ammo_path;
   cin >> ammo_path;
   if(ammo_path.empty()){
-    ammo_path = "ammo.json";
+    cout << "Ammo path empty!" << '\n';
+    return 1;
   };
+
   cout << "Enter path for output: " << '\n';
-  std::string output_path;
   cin >> output_path;
   if(output_path.empty()){
-    output_path = "simulation.json";
+    cout << "Output path empty!" << '\n';
+    return 1;
   };
 
     MissionProcessor mission(
