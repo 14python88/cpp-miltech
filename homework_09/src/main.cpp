@@ -31,8 +31,7 @@ using namespace std;
 
 int main(){
 
-
-
+    if (!USE_DEFAULT_PATHS) {
   cout << "Enter path for targets file: " << '\n';
   cin >> targets_path;
     if(targets_path.empty()){
@@ -60,6 +59,7 @@ int main(){
     cout << "Output path empty!" << '\n';
     return 1;
   };
+};
 
     MissionProcessor mission(
       createProvider(SourceType::JSON, targets_path),
