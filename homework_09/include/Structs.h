@@ -90,6 +90,7 @@ struct DroneContext {
     float current_speed;
     float current_time;
     float acceleration;
+    float t_acceleration;
     Coord dronePosNow;
     DroneConfig config;
 };

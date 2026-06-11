@@ -95,6 +95,7 @@ using namespace std;
             this->current_speed,
             this->current_time,
             this->acceleration,
+            this->t_acceleration,
             this->dronePosNow,
             this->config
         };
@@ -105,15 +106,15 @@ using namespace std;
     };
     
     Coord MissionProcessor::calculateBallistics(const Coord& targetPos, const float& h) {
-        return solver->calculateBallistics(this->config.acceleration_path, this->dronePosNow, targetPos, h);
+        return solver->calculateBallistics(this->ctx.config.acceleration_path, this->ctx.dronePosNow, targetPos, h);
     };
 
     Params MissionProcessor::calculateParameters(const Coord& dropPos) {
         Params params;
-        params.bearing     = this->calculateBearing(this->dronePosNow, dropPos);
-        params.delta_angle = this->getDeltaAngle(params.bearing, config.initial_dir);
-        params.drop_dist   = sqrt(pow((dropPos.x - this->dronePosNow.x),2) + pow((dropPos.y - this->dronePosNow.y),2));
-        params.total_time  = this->getTotalTime(this->config, this->current_time, params.delta_angle, params.drop_dist, this->acceleration, this->t_acceleration);
+        params.bearing     = this->calculateBearing(this->ctx.dronePosNow, dropPos);
+        params.delta_angle = this->getDeltaAngle(params.bearing, this->ctx.config.initial_dir);
+        params.drop_dist   = sqrt(pow((dropPos.x - this->ctx.dronePosNow.x),2) + pow((dropPos.y - this->ctx.dronePosNow.y),2));
+        params.total_time  = this->getTotalTime(this->ctx.config, this->ctx.current_time, params.delta_angle, params.drop_dist, this->ctx.acceleration, this->ctx.t_acceleration);
         return params;
     };
 
@@ -123,10 +124,10 @@ using namespace std;
         const int& sim_step,
         const ResultConst& resultConst)
     {
-        int index = (int)floor(this->current_time / this->config.array_time_step);
+        int index = (int)floor(this->ctx.current_time / this->ctx.config.array_time_step);
         int idx = index % 120;
         int next = (idx + 1) % 120;
-        float frac = (resultConst.t / this->config.array_time_step) - floor(resultConst.t / this->config.array_time_step);
+        float frac = (resultConst.t / this->ctx.config.array_time_step) - floor(resultConst.t / this->ctx.config.array_time_step);
 
         for (int j = 0; j < this->target_count; ++j) {
             if (sim_step == 0) {
@@ -147,7 +148,7 @@ using namespace std;
         const std::vector<Params>& params)
         {
         std::vector<Coord>    targetDcoord(5);
-        int index = (int)floor(this->current_time / this->config.array_time_step);
+        int index = (int)floor(this->ctx.current_time / this->ctx.config.array_time_step);
         int idx = index % 120;
         int next = (idx + 1) % 120;
 
@@ -155,8 +156,8 @@ using namespace std;
             targetDcoord[j] = this->targets[j][next] - this->targets[j][idx];
 
             Velocity speed = {
-                targetDcoord[j].x / this->config.array_time_step,
-                targetDcoord[j].y / this->config.array_time_step
+                targetDcoord[j].x / this->ctx.config.array_time_step,
+                targetDcoord[j].y / this->ctx.config.array_time_step
             };
 
             targetPosPredicted[j] = {
@@ -183,7 +184,7 @@ using namespace std;
                     params[i].bearing,
                     params[i].delta_angle,
                     params[i].drop_dist,
-                    (float)sqrt(pow((targetPosPredicted[i].x - this->dronePosNow.x),2) + pow((targetPosPredicted[i].y - this->dronePosNow.y),2))
+                    (float)sqrt(pow((targetPosPredicted[i].x - this->ctx.dronePosNow.x),2) + pow((targetPosPredicted[i].y - this->ctx.dronePosNow.y),2))
                 };
             }
         }
@@ -191,8 +192,8 @@ using namespace std;
 
     SimStep MissionProcessor::updateSteps () {
         SimStep steps = {
-            this->dronePosNow,
-            this->current_direction,
+            this->ctx.dronePosNow,
+            this->ctx.current_direction,
             this->state->name(),
             this->prefParameters.target_pref
         };
@@ -208,16 +209,16 @@ using namespace std;
 
     void MissionProcessor::getDropParameters(const float& h) {
         this->bombLand = {
-            this->dronePosNow.x + h * cos(this->current_direction),
-            this->dronePosNow.y + h * sin(this->current_direction)
+            this->ctx.dronePosNow.x + h * cos(this->ctx.current_direction),
+            this->ctx.dronePosNow.y + h * sin(this->ctx.current_direction)
         };
         this->delta_target_bomb = sqrt(pow((this->bombLand.x - this->prefParameters.targetPredictedPos.x),2) + pow((this->bombLand.y - this->prefParameters.targetPredictedPos.y),2));
     };
 
     void MissionProcessor::checkSuccess(int& sim_step, const ResultConst& resultConst) {
-        if ((fabs(this->current_direction - this->prefParameters.bearing_pref) < 1e-3) && (this->current_speed == config.attack_speed) &&
-            (this->prefParameters.drop_dist_pref <= this->config.hit_radius) && (this->prefParameters.dist_target_predicted <= resultConst.h + this->config.hit_radius) &&
-            (this->delta_target_bomb <= this->config.hit_radius)) {
+        if ((fabs(this->ctx.current_direction - this->prefParameters.bearing_pref) < 1e-3) && (this->ctx.current_speed == this->ctx.config.attack_speed) &&
+            (this->prefParameters.drop_dist_pref <= this->ctx.config.hit_radius) && (this->prefParameters.dist_target_predicted <= resultConst.h + this->ctx.config.hit_radius) &&
+            (this->delta_target_bomb <= this->ctx.config.hit_radius)) {
 
             LOG("BOMB AWAY! Simulation complete. Steps: " << sim_step + 1);
             LOG("Bomb flight distance is " << resultConst.h);
@@ -228,7 +229,7 @@ using namespace std;
 
             exit(EXIT_SUCCESS);
         }
-        this->current_time += this->config.sim_time_step;
+        this->current_time += this->ctx.config.sim_time_step;
         sim_step += 1;
     };
 

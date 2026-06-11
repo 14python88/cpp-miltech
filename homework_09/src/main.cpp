@@ -55,13 +55,12 @@ int main(){
     std::vector<Coord>    targetPosPredicted(mission.target_count);
     std::vector<Coord>    targetPosNow(mission.target_count);
     std::vector<Params>   params(mission.target_count);
-    DroneContext ctx;
 
     int sim_step = 0;
 
-    ResultConst resultConst = mission.MissionProcessor::solve(mission.config, mission.ammo);
+    ResultConst resultConst = mission.MissionProcessor::solve(mission.ctx.config, mission.ammo);
 
-    Logger logger(output_path, mission.config, mission.ammo, resultConst);
+    Logger logger(output_path, mission.ctx.config, mission.ammo, resultConst);
     logger.configLog();
 
     // Main loop
@@ -83,15 +82,6 @@ int main(){
         mission.MissionProcessor::updatePrefParams(params, targetPosPredicted, dropPos);
 
         steps[sim_step] = mission.MissionProcessor::updateSteps();
-
-        mission.ctx = {
-            mission.current_direction,
-            mission.current_speed,
-            mission.current_time,
-            mission.acceleration,
-            mission.dronePosNow,
-            mission.config
-        };
 
         // mission.MissionProcessor::dronePosChange(ctx);
 
