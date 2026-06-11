@@ -18,7 +18,6 @@
 #define USE_MATH_DEFINES
 
 #define ENABLE_LOG	1
-#define ENABLE_DEBUG  1
  
 #if ENABLE_LOG
   #define LOG(msg) std::cout << "[LOG] " << msg << std::endl
@@ -80,6 +79,14 @@ using namespace std;
         this->targets = provider->getTargetsCoord();
         this->target_count = provider->getTargetCount();
         this->time_steps = provider->getTimeSteps();
+
+        this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
+        this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
+        this->current_direction = this->config.initial_dir;
+        this->current_time = 0.0f;
+        this->current_speed = 0.0f;
+        this->dronePosNow = this->config.startPos;
+        this->state = STOPPED;
     };
 
     ResultConst MissionProcessor::solve(const DroneConfig droneConfig, const Ammo& ammo) {

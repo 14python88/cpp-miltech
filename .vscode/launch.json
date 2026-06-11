@@ -128,6 +128,32 @@
           "ignoreFailures": true
         }
       ]
+    },
+         {
+      // Локальний debug стартера ДЗ 9.
+      "name": "Debug homework_09: ballistics_4_cli",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/homework_09/ballistics_4_cli",
+      "args": [
+        "${workspaceFolder}/homework_09/data/targets.json",
+        "${workspaceFolder}/homework_09/data/config.json",
+        "${workspaceFolder}/homework_09/data/ammo.json"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "preLaunchTask": "CMake: configure and build",
+      "setupCommands": [
+        {
+          "description": "Увімкнути pretty-printing для STL типів у GDB.",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
     }
   ]
 }
