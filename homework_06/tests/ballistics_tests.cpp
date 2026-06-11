@@ -27,6 +27,15 @@ TEST(Ballistics, ComputesKnownDropPoint)
 
     .ammo_name = "VOG-17",
 
+      .xd = 100.0,
+      .yd = 100.0,
+      .zd = 100.0,
+      .target_x = 200.0,
+      .target_y = 200.0,
+      .attack_speed = 10.0,
+      .acceleration_path = 10.0,
+      .ammo_name = "VOG-17",
+
   };
 
   AmmoInput ammo = getAmmoInput(input.ammo_name.c_str());
@@ -67,6 +76,14 @@ TEST(Ballistics, ComputesMidPoint)
 
     .ammo_name = "VOG-17",
 
+      .xd = 100.0,
+      .yd = 100.0,
+      .zd = 100.0,
+      .target_x = 99.0,
+      .target_y = 99.0,
+      .attack_speed = 10.0,
+      .acceleration_path = 10.0,
+      .ammo_name = "VOG-17",
   };
 
   AmmoInput ammo = getAmmoInput(input.ammo_name.c_str());
@@ -86,20 +103,32 @@ TEST(Ballistics, ComputesMidPoint)
   EXPECT_NEAR(drop_point.y, 125.241, 0.01);
 }
 
-// Test for unknown ammo name
-TEST(GetAmmoTest, UnknownAmmoExit)
-{
-  EXPECT_EXIT(getAmmoInput("unknown_ammo"), ::testing::ExitedWithCode(EXIT_FAILURE), "Unknown ammo type!");
+// Test for unknown ammo name exit
+TEST(GetAmmoTest, UnknownAmmoExit) {
+
+  EXPECT_EXIT(
+    getAmmoInput("unknown_ammo"),
+    ::testing::ExitedWithCode(EXIT_FAILURE),
+    "Unknown ammo type!"
+  );
 }
 
-// Test for zero altitude
-TEST(ReadInputZdTest, ZeroAltitudeExit)
-{
-  EXPECT_EXIT(readInput(ZERO_ZD_FILE), ::testing::ExitedWithCode(EXIT_FAILURE), "Altitude must be above zero!");
+// Test for zero altitude exit
+TEST(ReadInputZdTest, ZeroAltitudeExit) {
+
+  EXPECT_EXIT(
+    readInput(ZERO_ZD_FILE),
+    ::testing::ExitedWithCode(EXIT_FAILURE),
+    "Altitude must be above zero!"
+  );
 }
 
-// Test for negative altitude
-TEST(ReadInputZdTest, NegativeAltitudeExit)
-{
-  EXPECT_EXIT(readInput(NEGATIVE_ZD_FILE), ::testing::ExitedWithCode(EXIT_FAILURE), "Altitude must be above zero!");
+// Test for negative altitude exit
+TEST(ReadInputZdTest, NegativeAltitudeExit) {
+
+  EXPECT_EXIT(
+    readInput(NEGATIVE_ZD_FILE),
+    ::testing::ExitedWithCode(EXIT_FAILURE),
+    "Altitude must be above zero!"
+  );
 }

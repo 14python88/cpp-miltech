@@ -11,7 +11,6 @@ target_link_libraries(ballistics_tests
 )
  
 # Expose the source-tree data directory to the test binary at compile time.
-# Tests use TEST_DATA_DIR"/zero_zd.txt" — no runtime path logic needed.
 target_compile_definitions(ballistics_tests
     PRIVATE
         TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
