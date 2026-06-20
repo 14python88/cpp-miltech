@@ -32,5 +32,11 @@ core.*
 .DS_Store
 Thumbs.db
 
-#Кеш
+#Кеш, попередні дз
 .cache/clangd/index
+.homework_04
+.homework_05
+.homework_06
+.homework_07
+.homework_08
+.homework_09

@@ -90,14 +90,6 @@ using namespace std;
         this->target_count = provider->getTargetCount();
         this->time_steps = provider->getTimeSteps();
         state = std::make_unique<StateStopped>();
-
-        // this->acceleration = this->config.attack_speed * this->config.attack_speed / (2 * this->config.acceleration_path);
-        // this->t_acceleration = (2 * this->config.acceleration_path) / this->config.attack_speed;
-        // this->current_direction = this->config.initial_dir;
-        // this->current_time = 0.0f;
-        // this->current_speed = 0.0f;
-        // this->dronePosNow = this->config.startPos;
-
     };
 
     ResultConst MissionProcessor::solve(const DroneConfig& droneConfig, const Ammo& ammo) {
@@ -198,13 +190,6 @@ using namespace std;
         };
         return steps;
     };
-
-    // void MissionProcessor::dronePosChange(DroneContext& ctx){
-    //     auto next = state->execute(ctx, this->prefParameters);
-    //     if (next){
-    //         state = std::move(next);
-    //     };
-    // };
 
     void MissionProcessor::getDropParameters(const float& h) {
         this->bombLand = {

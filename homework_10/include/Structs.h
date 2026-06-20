@@ -127,3 +127,8 @@ struct Targets{
     int target_count;
     std::vector<std::vector<Coord>> targets;
 };
+
+struct Target{
+	Coord pos;    	// поточна позиція цілі
+	Velocity velocity;   // поточна швидкість цілі
+};

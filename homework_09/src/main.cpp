@@ -32,34 +32,34 @@ using namespace std;
 int main(){
 
     if (!USE_DEFAULT_PATHS) {
-  cout << "Enter path for targets file: " << '\n';
-  cin >> targets_path;
-    if(targets_path.empty()){
-        cout << "Targets path empty!" << '\n';
+      cout << "Enter path for targets file: " << '\n';
+      cin >> targets_path;
+        if(targets_path.empty()){
+            cout << "Targets path empty!" << '\n';
+            return 1;
+        };
+
+      cout << "Enter path for config file: " << '\n';
+      cin >> config_path;
+      if(config_path.empty()){
+        cout << "Config path empty!" << '\n';
         return 1;
+      };
+
+      cout << "Enter path for ammo file: " << '\n';
+      cin >> ammo_path;
+      if(ammo_path.empty()){
+        cout << "Ammo path empty!" << '\n';
+        return 1;
+      };
+
+      cout << "Enter path for output: " << '\n';
+      cin >> output_path;
+      if(output_path.empty()){
+        cout << "Output path empty!" << '\n';
+        return 1;
+      };
     };
-
-  cout << "Enter path for config file: " << '\n';
-  cin >> config_path;
-  if(config_path.empty()){
-    cout << "Config path empty!" << '\n';
-    return 1;
-  };
-
-  cout << "Enter path for ammo file: " << '\n';
-  cin >> ammo_path;
-  if(ammo_path.empty()){
-    cout << "Ammo path empty!" << '\n';
-    return 1;
-  };
-
-  cout << "Enter path for output: " << '\n';
-  cin >> output_path;
-  if(output_path.empty()){
-    cout << "Output path empty!" << '\n';
-    return 1;
-  };
-};
 
     MissionProcessor mission(
       createProvider(SourceType::JSON, targets_path),
@@ -100,8 +100,6 @@ int main(){
         mission.MissionProcessor::updatePrefParams(params, targetPosPredicted, dropPos);
 
         steps[sim_step] = mission.MissionProcessor::updateSteps();
-
-        // mission.MissionProcessor::dronePosChange(ctx);
 
         auto next = mission.state->execute(mission.ctx, mission.prefParameters);
         if (next){
