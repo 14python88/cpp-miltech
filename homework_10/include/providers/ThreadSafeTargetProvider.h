@@ -7,12 +7,13 @@ class ThreadSafeTargetProvider : public ITargetProvider {
     int target_count;
     int time_steps;
     std::string path;
-    std::vector<std::vector<Target>> target;
+    std::vector<std::vector<Coord>> targets;
 
     public:
         ThreadSafeTargetProvider(std::string path);
-        void getTarget(float current_time, ResultConst resultConst, DroneContext ctx) override;
-        void ThreadSafeTargetProvider::extrapolateTargets(
+        void getTargetsVector() override; 
+        std::vector<std::vector<Target>> getTargetsNow(float current_time, ResultConst resultConst, DroneContext ctx) override;
+        void extrapolateTargets(
             std::vector<Coord>& targetPosPredicted,
             const std::vector<Params>& params,
             float current_time,

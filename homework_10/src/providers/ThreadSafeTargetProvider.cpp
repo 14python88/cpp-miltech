@@ -18,22 +18,25 @@ using json = nlohmann::json;
             targets_json.close();
 
             // this->target.reserve(this->target_count);
-            this->target = std::vector<std::vector<Target>>(target_count, std::vector<Target>(time_steps));
+            this->targets = std::vector<std::vector<Coord>>(this->target_count, std::vector<Coord>(this->time_steps));
         };
 
-        void ThreadSafeTargetProvider::getTarget(float current_time, ResultConst resultConst, DroneContext ctx) {
-            std::vector<std::vector<Coord>> targets(target_count, std::vector<Coord>(time_steps));
+        void ThreadSafeTargetProvider::getTargetsVector() {
             std::ifstream targets_json(this->path);
             json j_targets = json::parse(targets_json);
-            std::vector<Coord> targetPosDelta(this->target_count);
-
             for (int i = 0; i < target_count; ++i) {
                 const auto& positions = j_targets["targets"][i]["positions"];
                 for (int j = 0; j < time_steps; ++j) {
-                    targets[i][j].x = positions[j]["x"];
-                    targets[i][j].y = positions[j]["y"];
-                };
-            };
+                    this->targets[i][j].x = positions[j]["x"];
+                    this->targets[i][j].y = positions[j]["y"];
+                }
+            }
+            targets_json.close();
+        };
+
+        std::vector<std::vector<Target>> ThreadSafeTargetProvider::getTargetsNow(float current_time, ResultConst resultConst, DroneContext ctx){
+            std::vector<std::vector<Target>> target(this->target_count, std::vector<Target>(this->time_steps));
+            std::vector<Coord> targetPosDelta(this->target_count);
 
             int index = (int)floor(current_time / ctx.config.array_time_step);
             int idx = index % 120;
@@ -42,22 +45,22 @@ using json = nlohmann::json;
 
             for (int j = 0; j < this->target_count; ++j) {
                 if (current_time == 0) {
-                    this->target[j][current_time].pos = targets[j][0];
-                    this->target[j][current_time].velocity = {0,0};
+                    target[j][current_time].pos = targets[j][0];
+                    target[j][current_time].velocity = {0,0};
                 }else{
-                    this->target[j][current_time].pos = {
-                        targets[j][idx].x + (targets[j][idx].x - targets[j][prev].x) * frac,
-                        targets[j][idx].y + (targets[j][idx].y - targets[j][prev].y) * frac
+                    target[j][current_time].pos = {
+                        targets[j][idx].x + (this->targets[j][idx].x - this->targets[j][prev].x) * frac,
+                        targets[j][idx].y + (this->targets[j][idx].y - this->targets[j][prev].y) * frac
                     };
                 }
-                targetPosDelta[j] = this->target[j][current_time].pos - this->target[j][prev].pos;
+                targetPosDelta[j] = target[j][current_time].pos - target[j][prev].pos;
 
-                this->target[j][current_time].velocity = {
+                target[j][current_time].velocity = {
                     targetPosDelta[j].x / ctx.config.array_time_step,
                     targetPosDelta[j].y / ctx.config.array_time_step
                 };
             }
-            targets_json.close();
+            return target;
         };
 
         void ThreadSafeTargetProvider::extrapolateTargets(
