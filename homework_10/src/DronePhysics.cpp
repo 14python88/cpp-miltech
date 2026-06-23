@@ -4,7 +4,7 @@
 
 
 void DronePhysics::changeState(PrefParameters prefParameters) {
-    auto next = this->state->execute(ctx, prefParameters);
+    auto next = this->state->execute(this->ctx, prefParameters);
     if (next) {
         this->state = std::move(next);
     }
