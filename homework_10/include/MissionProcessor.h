@@ -44,23 +44,23 @@ public:
     ResultConst solve(const DroneConfig& droneConfig, const Ammo& ammo);
     Coord calculateBallistics(const Coord& targetPos, const float& h);
     Params calculateParameters(const Coord& dropPos);
-    void interpolateTargets(
-        std::vector<Coord>& targetPosNow,
-        const int& sim_step,
-        const ResultConst& resultConst
-    );
-    void extrapolateTargets(
-        std::vector<Coord>& targetPosPredicted,
-        const std::vector<Coord>& targetPosNow,
-        const std::vector<Params>& params
-    );
+    // void interpolateTargets(
+    //     std::vector<Coord>& targetPosNow,
+    //     const int& sim_step,
+    //     const ResultConst& resultConst
+    // );
+    // void extrapolateTargets(
+    //     std::vector<Coord>& targetPosPredicted,
+    //     const std::vector<Coord>& targetPosNow,
+    //     const std::vector<Params>& params
+    // );
     void updatePrefParams (
         const std::vector<Params>& params,
         const std::vector<Coord>& targetPosPredicted,
         const std::vector<Coord>& dropPos
         );
     SimStep updateSteps ();
-    void dronePosChange(DroneContext& ctx);
+    // void dronePosChange(DroneContext& ctx);
     void getDropParameters(const float& h);
     void checkSuccess(int& sim_step, const ResultConst& resultConst);
     void changeSolver(std::unique_ptr<IBallisticSolver> s);

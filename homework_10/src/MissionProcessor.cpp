@@ -118,53 +118,53 @@ using namespace std;
     };
 
         // Interpolates target positions at the current simulation time
-    void MissionProcessor::interpolateTargets(
-        std::vector<Coord>& targetPosNow,
-        const int& sim_step,
-        const ResultConst& resultConst)
-    {
-        int index = (int)floor(this->ctx.current_time / this->ctx.config.array_time_step);
-        int idx = index % 120;
-        int next = (idx + 1) % 120;
-        float frac = (resultConst.t / this->ctx.config.array_time_step) - floor(resultConst.t / this->ctx.config.array_time_step);
+    // void MissionProcessor::interpolateTargets(
+    //     std::vector<Coord>& targetPosNow,
+    //     const int& sim_step,
+    //     const ResultConst& resultConst)
+    // {
+    //     int index = (int)floor(this->ctx.current_time / this->ctx.config.array_time_step);
+    //     int idx = index % 120;
+    //     int next = (idx + 1) % 120;
+    //     float frac = (resultConst.t / this->ctx.config.array_time_step) - floor(resultConst.t / this->ctx.config.array_time_step);
 
-        for (int j = 0; j < this->target_count; ++j) {
-            if (sim_step == 0) {
-                targetPosNow[j] = targets[j][0];
-            } else {
-                targetPosNow[j] = {
-                    this->targets[j][idx].x + (this->targets[j][next].x - this->targets[j][idx].x) * frac,
-                    this->targets[j][idx].y + (this->targets[j][next].y - this->targets[j][idx].y) * frac
-                };
-            }
-        }
-    }
+    //     for (int j = 0; j < this->target_count; ++j) {
+    //         if (sim_step == 0) {
+    //             targetPosNow[j] = targets[j][0];
+    //         } else {
+    //             targetPosNow[j] = {
+    //                 this->targets[j][idx].x + (this->targets[j][next].x - this->targets[j][idx].x) * frac,
+    //                 this->targets[j][idx].y + (this->targets[j][next].y - this->targets[j][idx].y) * frac
+    //             };
+    //         }
+    //     }
+    // }
 
     // Extrapolates predicted target positions based on current velocity
-    void MissionProcessor::extrapolateTargets(
-        std::vector<Coord>& targetPosPredicted,
-        const std::vector<Coord>& targetPosNow,
-        const std::vector<Params>& params)
-        {
-        std::vector<Coord>    targetDcoord(5);
-        int index = (int)floor(this->ctx.current_time / this->ctx.config.array_time_step);
-        int idx = index % 120;
-        int next = (idx + 1) % 120;
+    // void MissionProcessor::extrapolateTargets(
+    //     std::vector<Coord>& targetPosPredicted,
+    //     const std::vector<Coord>& targetPosNow,
+    //     const std::vector<Params>& params)
+    //     {
+    //     std::vector<Coord>    targetDcoord(5);
+    //     int index = (int)floor(this->ctx.current_time / this->ctx.config.array_time_step);
+    //     int idx = index % 120;
+    //     int next = (idx + 1) % 120;
 
-        for (int j = 0; j < this->target_count; ++j) {
-            targetDcoord[j] = this->targets[j][next] - this->targets[j][idx];
+    //     for (int j = 0; j < this->target_count; ++j) {
+    //         targetDcoord[j] = this->targets[j][next] - this->targets[j][idx];
 
-            Velocity speed = {
-                targetDcoord[j].x / this->ctx.config.array_time_step,
-                targetDcoord[j].y / this->ctx.config.array_time_step
-            };
+    //         Velocity speed = {
+    //             targetDcoord[j].x / this->ctx.config.array_time_step,
+    //             targetDcoord[j].y / this->ctx.config.array_time_step
+    //         };
 
-            targetPosPredicted[j] = {
-                targetPosNow[j].x + speed.vx * params[j].total_time,
-                targetPosNow[j].y + speed.vy * params[j].total_time
-            };
-        };
-    };
+    //         targetPosPredicted[j] = {
+    //             targetPosNow[j].x + speed.vx * params[j].total_time,
+    //             targetPosNow[j].y + speed.vy * params[j].total_time
+    //         };
+    //     };
+    // };
     
     void MissionProcessor::updatePrefParams (
         const std::vector<Params>& params,
