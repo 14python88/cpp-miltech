@@ -10,5 +10,5 @@ class DronePhysics {
     DroneContext ctx;
 
     public:
-        void changeState(PrefParameters prefParameters);
+        void changeState(PrefParameters& prefParameters);
 };
