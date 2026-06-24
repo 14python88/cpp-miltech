@@ -86,7 +86,7 @@ using namespace std;
         this->ctx.t_acceleration = (2 * this->ctx.config.acceleration_path) / this->ctx.config.attack_speed;
 
         this->ammo = loader->getAmmo(this->ctx.config);
-        this->targets = provider->getTargetsCoord();
+        // this->targets = provider->getTargetsCoord();
         this->target_count = provider->getTargetCount();
         this->time_steps = provider->getTimeSteps();
         state = std::make_unique<StateStopped>();

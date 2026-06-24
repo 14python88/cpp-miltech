@@ -132,3 +132,5 @@ struct Target{
 	Coord pos;    	// поточна позиція цілі
 	Velocity velocity;   // поточна швидкість цілі
 };
+
+
