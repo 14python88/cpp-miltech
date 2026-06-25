@@ -115,7 +115,7 @@ int read_frames(const char* path, Frame frames[], int max_frames) {
     std::ifstream input{path};
     if (!input) {
         std::cerr << "error: failed to open input file: " << path << '\n';
-        return 0;
+        exit(EXIT_FAILURE);
     }
 
     int frame_count = 0;
