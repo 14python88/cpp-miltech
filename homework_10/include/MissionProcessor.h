@@ -7,6 +7,7 @@
 #include <interfaces/IConfigLoader.h>
 #include <interfaces/IBallisticSolver.h>
 #include <interfaces/IDroneState.h>
+#include <PhysicsStructs.h>
 
 class MissionProcessor {
 
@@ -18,50 +19,34 @@ class MissionProcessor {
     float normalizeAngle(float& angle);
     float getDeltaAngle(const float& target, const float& current);
     float getTotalTime(const DroneConfig& config, const float& current_speed, const float& angle, const float& distance, const float& acceleration, const float& t_acceleration);
-
 public:
 
     int target_count;
     int time_steps;
     DroneConfig config;
     Ammo ammo;
-    std::vector<std::vector<Coord>> targets;
     PrefParameters prefParameters;
-    std::unique_ptr<IDroneState> state;
     float delta_target_bomb;
-    float current_direction;
-    float current_speed;
-    float current_time;
     float acceleration;
     float t_acceleration;
     Coord bombLand;
-    Coord dronePosNow;
-    DroneContext ctx;
+    float current_time;
 
     MissionProcessor(std::unique_ptr<ITargetProvider> t, std::unique_ptr<IConfigLoader> l, std::unique_ptr<IBallisticSolver> s);
     
     void init();
+    void getTelemetry(DroneTelemetry telemetry);
     ResultConst solve(const DroneConfig& droneConfig, const Ammo& ammo);
-    Coord calculateBallistics(const Coord& targetPos, const float& h);
-    Params calculateParameters(const Coord& dropPos);
-    // void interpolateTargets(
-    //     std::vector<Coord>& targetPosNow,
-    //     const int& sim_step,
-    //     const ResultConst& resultConst
-    // );
-    // void extrapolateTargets(
-    //     std::vector<Coord>& targetPosPredicted,
-    //     const std::vector<Coord>& targetPosNow,
-    //     const std::vector<Params>& params
-    // );
+    Coord calculateBallistics(const DroneTelemetry telemetry, const Coord targetPos, const float& h);
+    Params calculateParameters(const DroneTelemetry telemetry, const Coord& dropPos);
     void updatePrefParams (
         const std::vector<Params>& params,
         const std::vector<Coord>& targetPosPredicted,
-        const std::vector<Coord>& dropPos
+        const std::vector<Coord>& dropPos,
+        DroneTelemetry telemetry
         );
-    SimStep updateSteps ();
-    // void dronePosChange(DroneContext& ctx);
-    void getDropParameters(const float& h);
-    void checkSuccess(int& sim_step, const ResultConst& resultConst);
+    SimStep updateSteps (const DroneTelemetry telemetry, std::unique_ptr<IDroneState>& state);
+    void getDropParameters(const DroneTelemetry telemetry, const float& h);
+    void checkSuccess(const DroneTelemetry telemetry, int& sim_step, const ResultConst& resultConst);
     void changeSolver(std::unique_ptr<IBallisticSolver> s);
 };

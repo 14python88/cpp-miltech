@@ -17,11 +17,10 @@ class DronePhysics {
         0.0
     };
 
-    DroneConfig config{};
     float acceleration;
     float t_acceleration;
 
     public:
-        DronePhysics(DroneConfig& config, Coord pos, float speed, float direction, float time, float acceleration, float t_acceleration);
-        void changeState(PrefParameters& prefParameters);
+        DronePhysics(DroneConfig config, Coord pos, float speed, float direction, float time);
+        void changeState(DroneConfig config, PrefParameters prefParameters);
 };
