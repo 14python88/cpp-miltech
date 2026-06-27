@@ -1,39 +1,37 @@
+#include <config/ComponentFactory.h>
 #include <interfaces/ITargetProvider.h>
 #include <interfaces/IConfigLoader.h>
 #include <interfaces/IBallisticSolver.h>
-
-#include <JSONTargetProvider.h>
+#include <ThreadSafeTargetProvider.h>
 #include <JSONConfigLoader.h>
 #include <AnalyticalSolver.h>
-
-#include <ComponentFactory.h>
 #include <memory>
- 
-std::unique_ptr<ITargetProvider> createProvider(
-    SourceType type, std::string path) {
+
+std::unique_ptr<ITargetProvider> createProvider(SourceType type, const std::string& path, float array_time_step)
+{
     switch (type) {
         case SourceType::JSON:
-            return std::make_unique<JSONTargetProvider>(path);
-        default: return nullptr;
+            return std::make_unique<ThreadSafeTargetProvider>(path, array_time_step);
+        default:
+            return nullptr;
     }
-};
+}
 
-std::unique_ptr<IBallisticSolver> createSolver(
-    SolverType type) {
+std::unique_ptr<IBallisticSolver> createSolver(SolverType type) {
     switch (type) {
         case SolverType::ANALYTICAL:
             return std::make_unique<AnalyticalSolver>();
-        // case SolverType::TABLE:
-        //     return std::make_unique<TableSolver>();
-        default: return nullptr;
+        default:
+            return nullptr;
     }
-};
+}
 
-std::unique_ptr<IConfigLoader> createLoader(
-    LoaderType type, std::string config_path, std::string ammo_path) {
+std::unique_ptr<IConfigLoader> createLoader(LoaderType type, const std::string& config_path, const std::string& ammo_path)
+{
     switch (type) {
         case LoaderType::JSON:
             return std::make_unique<JSONConfigLoader>(config_path, ammo_path);
-        default: return nullptr;
+        default:
+            return nullptr;
     }
-};
+}

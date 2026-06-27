@@ -12,6 +12,7 @@ add_library(ballistics_5 STATIC
     src/config/ComponentFactory.cpp 
     src/solvers/AnalyticalSolver.cpp 
     src/Logger.cpp
+    src/DronePhysics.cpp
     src/states/StateStopped.cpp
     src/states/StateTurning.cpp
     src/states/StateAccelerating.cpp

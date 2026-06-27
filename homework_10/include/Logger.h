@@ -1,16 +1,14 @@
 #pragma once
 
 #include <Structs.h>
+#include <PhysicsStructs.h>
 #include <json.hpp>
-#include <MissionProcessor.h>
-
 #include <fstream>
+#include <string>
 
 using json = nlohmann::json;
-using namespace std;
 
 class Logger {
-
 public:
     DroneConfig config;
     Ammo ammo;
@@ -19,7 +17,15 @@ public:
     std::ofstream fout;
 
     Logger(const std::string& output_path, const DroneConfig& c, const Ammo& a, const ResultConst& TH);
+
     void configLog();
-    void debugLog (const MissionProcessor& mission, const int& sim_step);
-    void outputLog(const float& sim_step, const std::vector<SimStep>& steps, const Coord& dropPosPref, const Coord& bombLand, const Coord& targetPredictedPos);
+
+    void debugLog(const DroneTelemetry& telemetry, const PrefParameters& prefParameters, const int& sim_step);
+
+    void outputLog(
+       const int& sim_step,
+       const SimStep& step,
+       const Coord& dropPosPref,
+       const Coord& bombLand,
+       const Coord& targetPredictedPos);
 };

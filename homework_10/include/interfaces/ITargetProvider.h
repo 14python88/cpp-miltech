@@ -1,20 +1,18 @@
 #pragma once
-
 #include <Structs.h>
 
 class ITargetProvider {
-    public:
-        virtual void getTargetsVector() = 0; 
-        virtual void interpolateTargets(
-            float& current_time, 
-            ResultConst& resultConst, 
-            DroneConfig& config) = 0;
-        virtual void extrapolateTargets(
-            const std::vector<Target> targetNow,
-            const std::vector<Params> params) = 0;
-        virtual std::vector<Target> getTargetNow() = 0;
-        virtual std::vector<Coord> getTargetPredicted() = 0;
-        virtual int getTimeSteps() = 0;
-        virtual int getTargetCount() = 0;
-        virtual ~ITargetProvider() = default;
+public:
+    virtual ~ITargetProvider() = default;
+
+    virtual bool isThreadReady() const = 0;
+    virtual void start() = 0;
+    virtual void stop() = 0;
+
+    virtual std::vector<Target> getTargetNow()       const = 0;
+    virtual std::vector<Coord>  getTargetPredicted() const = 0;
+    virtual void extrapolateTargets(const std::vector<Params>& params) = 0;
+
+    virtual int getTargetCount() const = 0;
 };
+ 
