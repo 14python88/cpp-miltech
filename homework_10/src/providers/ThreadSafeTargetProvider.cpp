@@ -73,7 +73,6 @@ void ThreadSafeTargetProvider::start()
 void ThreadSafeTargetProvider::stop()
 {
     stop_flag.store(true, std::memory_order_release);
-
     {
         std::lock_guard<std::mutex> lk(start_mutex);
         start_signaled = true;
@@ -130,7 +129,7 @@ int ThreadSafeTargetProvider::getTargetCount() const
 
 void ThreadSafeTargetProvider::workerLoop()
 {
-    // Threead is ready and waiting for start()
+    // Thread is ready and waiting for start()
     thread_ready.store(true, std::memory_order_release);
 
     // Block until start()

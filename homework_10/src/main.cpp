@@ -59,7 +59,11 @@ int main() {
 
         cout << "Enter path for output: \n";
         cin >> output_path;
-        if (output_path.empty())  { cout << "Output path empty!\n";  return 1; }
+        if (output_path.empty()) 
+        {
+            cout << "Output path empty!\n";
+            return 1;
+        }
     }
 
     // Uploading config and ammo for DronePhysics and ThreadSafeTargetProvider
@@ -72,22 +76,18 @@ int main() {
     ResultConst resultConst = solverTmp->solve(config, ammo);
 
     // Creating components through ComponentsFactory
-    // array_time_step from config
-    auto providerOwned = createProvider(SourceType::JSON,
-                                        targets_path,
-                                        config.array_time_step);
+    auto providerOwned = createProvider(SourceType::JSON, targets_path, config.array_time_step);
 
     // Raw pointer for use in MissionProcessor
-    ThreadSafeTargetProvider* provider =
-        static_cast<ThreadSafeTargetProvider*>(providerOwned.get());
+    ThreadSafeTargetProvider* provider = static_cast<ThreadSafeTargetProvider*>(providerOwned.get());
 
     // Set up DronePhysics
     auto physics = std::make_unique<DronePhysics>(
         config,
         config.startPos,
-        0.0f,               // початкова швидкість
-        config.initial_dir, // початковий напрямок
-        0.0f,               // початковий час
+        0.0f,
+        config.initial_dir,
+        0.0f,
         config.sim_time_step
     );
 
@@ -115,7 +115,7 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    // Synchronized start; provider and physics start first
+    // Synchronized start
     provider->start();
     physics->start();
     mission->start();
