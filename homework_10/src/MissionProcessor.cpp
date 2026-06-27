@@ -30,18 +30,13 @@
 
 using json = nlohmann::json;
 
-// Constructor / Destructor
-
-MissionProcessor::MissionProcessor(std::unique_ptr<ITargetProvider>  t,
-                                   std::unique_ptr<IConfigLoader>     l,
-                                   std::unique_ptr<IBallisticSolver>  s,
-                                   DronePhysics&                      physics,
-                                   Logger*                            logger)
-    : provider(std::move(t))
-    , loader(std::move(l))
-    , solver(std::move(s))
-    , physics(physics)
-    , logger(logger)
+MissionProcessor::MissionProcessor(
+    std::unique_ptr<ITargetProvider> t,
+    std::unique_ptr<IConfigLoader> l,
+    std::unique_ptr<IBallisticSolver> s,
+    DronePhysics& physics,
+    Logger* logger)
+    : provider(std::move(t)), loader(std::move(l)), solver(std::move(s)), physics(physics), logger(logger)
 {
     worker_thread = std::thread(&MissionProcessor::run, this);
 }
@@ -101,7 +96,7 @@ void MissionProcessor::changeSolver(std::unique_ptr<IBallisticSolver> s) {
     solver = std::move(s);
 }
 
-// Private: mission loop
+// Mission loop
 
 void MissionProcessor::run() {
     thread_ready.store(true, std::memory_order_release);
@@ -117,7 +112,7 @@ void MissionProcessor::run() {
     }
 
     // Main body
-    using Clock   = std::chrono::steady_clock;
+    using Clock = std::chrono::steady_clock;
     using Seconds = std::chrono::duration<double>;
 
     auto next_tick = Clock::now() + Seconds(config.sim_time_step);
@@ -160,7 +155,7 @@ void MissionProcessor::run() {
         // Check if bomb can be released
         checkSuccess(telemetry, sim_step, resultConst);
 
-        // Preparaing step data for logge output
+        // Preparaing step data for logger output
         SimStep step = updateSteps(telemetry);
 
         // Output of step data
@@ -190,17 +185,16 @@ void MissionProcessor::run() {
 
 // Private: state decision
 
-std::unique_ptr<IDroneState> MissionProcessor::decideState(
-    const DroneTelemetry& telemetry)
+std::unique_ptr<IDroneState> MissionProcessor::decideState(const DroneTelemetry& telemetry)
 {
-    const float delta         = prefParameters.delta_angle_pref;
-    const float speed         = telemetry.current_speed;
+    const float delta = prefParameters.delta_angle_pref;
+    const float speed = telemetry.current_speed;
     const std::string current = physics.getStateName();
 
     bool angle_small = fabs(delta) <= config.turn_threshold;
-    bool angle_large = fabs(delta) >  config.turn_threshold;
-    bool speed_zero  = speed == 0.0f;
-    bool speed_max   = speed >= config.attack_speed;
+    bool angle_large = fabs(delta) > config.turn_threshold;
+    bool speed_zero = speed == 0.0f;
+    bool speed_max = speed >= config.attack_speed;
 
     if (angle_large && speed_zero && current != "Turning")
         return std::make_unique<StateTurning>();
@@ -211,7 +205,7 @@ std::unique_ptr<IDroneState> MissionProcessor::decideState(
     if (angle_small && speed_max && current != "Moving")
         return std::make_unique<StateMoving>();
 
-    if (angle_large && !speed_zero)
+    if (angle_large && !speed_zero && current != "Decelerating")
         return std::make_unique<StateDecelerating>();
 
     return nullptr;
